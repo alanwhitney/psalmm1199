@@ -6,6 +6,17 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
+const C = {
+  bg: "#0e0e10",
+  bgRaised: "#18181c",
+  bgOverlay: "#222228",
+  border: "#2a2a32",
+  gold: "#c9a84c",
+  textPrimary: "#f0ede6",
+  textSecondary: "#9d9a95",
+  textMuted: "#5a5855",
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -26,86 +37,99 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/bible/PSA/119");
+      // Refresh first to sync session cookies, then navigate
       router.refresh();
+      router.push("/bible/PSA/119");
     }
   }
 
-  return (
-    <div className="min-h-screen bg-surface flex items-center justify-center px-4">
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 50% 40% at 50% 40%, rgba(201,168,76,0.05) 0%, transparent 70%)",
-        }}
-      />
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    background: C.bgOverlay,
+    border: `1px solid ${C.border}`,
+    borderRadius: 8,
+    fontSize: 13,
+    color: C.textPrimary,
+    outline: "none",
+    boxSizing: "border-box" as const,
+  };
 
-      <div className="relative z-10 w-full max-w-sm animate-fade-in">
+  const labelStyle = {
+    display: "block",
+    fontSize: 11,
+    color: C.textSecondary,
+    fontWeight: 600,
+    marginBottom: 6,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.05em",
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
+      <div style={{ width: "100%", maxWidth: 360 }}>
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-surface-raised border border-border-subtle flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-gold" />
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <Link href="/" style={{ textDecoration: "none", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: C.bgRaised, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <BookOpen size={20} color={C.gold} />
             </div>
-            <span className="text-sm text-text-muted">Psalm 119:9</span>
+            <span style={{ fontSize: 12, color: C.textMuted }}>Psalm 119:9</span>
           </Link>
-          <h1 className="text-xl font-semibold text-text-primary mt-4">Welcome back</h1>
-          <p className="text-sm text-text-muted mt-1">Sign in to access your bookmarks & notes</p>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: C.textPrimary, margin: "16px 0 4px" }}>Welcome back</h1>
+          <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>Sign in to access your bookmarks & notes</p>
         </div>
 
         {/* Form */}
-        <div className="bg-surface-raised border border-border-subtle rounded-xl p-6">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs text-text-secondary mb-1.5 font-medium">Email</label>
+        <div style={{ background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
+          <form onSubmit={handleLogin}>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2.5 bg-surface-overlay border border-border-subtle rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold transition-colors"
                 placeholder="you@example.com"
+                style={inputStyle}
               />
             </div>
 
-            <div>
-              <label className="block text-xs text-text-secondary mb-1.5 font-medium">Password</label>
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2.5 bg-surface-overlay border border-border-subtle rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-gold transition-colors"
                 placeholder="••••••••"
+                style={inputStyle}
               />
             </div>
 
             {error && (
-              <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+              <div style={{ marginBottom: 16, padding: "10px 12px", background: "#ef444420", border: "1px solid #ef444440", borderRadius: 8, fontSize: 12, color: "#f87171" }}>
                 {error}
-              </p>
+              </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-gold text-surface font-semibold text-sm rounded-lg hover:bg-gold-bright transition-colors disabled:opacity-60"
+              style={{ width: "100%", padding: "11px 0", background: C.gold, color: C.bg, fontWeight: 700, fontSize: 13, borderRadius: 8, border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1 }}
             >
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-sm text-text-muted mt-4">
+        <p style={{ textAlign: "center", fontSize: 13, color: C.textMuted, marginTop: 16 }}>
           Don't have an account?{" "}
-          <Link href="/auth/signup" className="text-gold hover:underline">
-            Sign up
-          </Link>
+          <Link href="/auth/signup" style={{ color: C.gold, textDecoration: "none" }}>Sign up</Link>
         </p>
 
-        <p className="text-center mt-4">
-          <Link href="/bible/PSA/119" className="text-xs text-text-muted hover:text-text-secondary">
+        <p style={{ textAlign: "center", marginTop: 12 }}>
+          <Link href="/bible/PSA/119" style={{ fontSize: 12, color: C.textMuted, textDecoration: "none" }}>
             Continue reading without an account →
           </Link>
         </p>
