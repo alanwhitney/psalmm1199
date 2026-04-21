@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest) {
@@ -14,13 +14,14 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll();
+          get(name: string) {
+            return cookieStore.get(name)?.value;
           },
-          setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
-            );
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: "", ...options });
           },
         },
       }
@@ -32,6 +33,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If something went wrong, send to login with error
   return NextResponse.redirect(`${origin}/auth/login?error=confirmation_failed`);
 }
