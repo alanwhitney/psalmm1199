@@ -3,7 +3,8 @@ import { Translation, Chapter, Verse } from "@/types";
 // api.bible translation IDs
 const TRANSLATION_IDS: Record<Translation, string> = {
   KJV: process.env.BIBLE_API_KJV_ID || "de4e12af7f28f599-02",
-  NKJV: process.env.BIBLE_API_NKJV_ID || "", // Set in .env.local after registration
+  NKJV: process.env.BIBLE_API_NKJV_ID || "",
+  NIV: process.env.BIBLE_API_NIV_ID || "3e2eb613d45e131e-01",
 };
 
 const API_BASE = "https://rest.api.bible/v1";

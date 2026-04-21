@@ -16,7 +16,7 @@ interface ReaderLayoutProps {
   children: React.ReactNode;
 }
 
-const TRANSLATIONS: Translation[] = ["KJV", "NKJV"];
+const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV"];
 
 const C = {
   bg: "#0e0e10",

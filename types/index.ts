@@ -1,5 +1,5 @@
 // Bible types
-export type Translation = "KJV" | "NKJV";
+export type Translation = "KJV" | "NKJV" | "NIV";
 
 export interface Book {
   id: string;

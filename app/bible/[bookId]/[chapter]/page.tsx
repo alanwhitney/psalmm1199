@@ -23,8 +23,9 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
     return notFound();
   }
 
+  const VALID_TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV"];
   const translation: Translation =
-    t === "NKJV" ? "NKJV" : "KJV";
+    VALID_TRANSLATIONS.includes(t as Translation) ? (t as Translation) : "KJV";
 
   // Fetch chapter text (server-side, cached)
   let chapterData;
