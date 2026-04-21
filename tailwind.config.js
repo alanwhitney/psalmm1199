@@ -8,10 +8,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "ui-sans-serif", "system-ui"],
-        mono: ["var(--font-geist-mono)", "ui-monospace"],
-        display: ["var(--font-display)"],
-        reading: ["var(--font-reading)"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui"],
+        reading: ["var(--font-reading)", "Georgia", "serif"],
       },
       colors: {
         surface: {
