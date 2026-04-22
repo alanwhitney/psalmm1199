@@ -130,6 +130,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
           {[
             { href: "/bookmarks", icon: <Bookmark size={13} />, label: "Bookmarks & Notes" },
             { href: "/bookmarks?tab=plan", icon: <CalendarDays size={13} />, label: "Reading Plan" },
+            { href: "/about", icon: <BookOpen size={13} />, label: "About" },
           ].map(({ href, icon, label }) => (
             <Link key={href} href={href} onClick={() => setMobileOpen(false)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 4px", fontSize: 12, color: C.textSecondary, textDecoration: "none", borderRadius: 6 }}>
               <span style={{ color: C.gold }}>{icon}</span>
@@ -225,7 +226,7 @@ function BookItem({ b, active, activeChapter, onSelect }: {
   return (
     <div>
       <button
-        onClick={() => { setExpanded(e => !e); if (!expanded) onSelect(1); }}
+        onClick={() => setExpanded(e => !e)}
         style={{ width: "100%", textAlign: "left", padding: "6px 16px", background: "none", border: "none", cursor: "pointer", color: active ? C.gold : C.textSecondary, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}
       >
         <span>{b.name}</span>
