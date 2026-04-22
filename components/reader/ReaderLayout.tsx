@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search } from "lucide-react";
+import SearchPanel from "./SearchPanel";
 import { Book, Translation } from "@/types";
 import { OT_BOOKS, NT_BOOKS } from "@/lib/books";
 import { createClient } from "@/lib/supabase/client";
@@ -14,6 +15,8 @@ interface ReaderLayoutProps {
   translation: Translation;
   user: { id: string; email?: string } | null;
   children: React.ReactNode;
+  verses?: { number: number; text: string }[];
+  onHighlightVerse?: (verse: number | null) => void;
 }
 
 const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV"];
@@ -32,12 +35,13 @@ const C = {
 
 const DESKTOP_BREAKPOINT = 1024;
 
-export default function ReaderLayout({ book, chapter, translation, user, children }: ReaderLayoutProps) {
+export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse }: ReaderLayoutProps) {
   const router = useRouter();
   const supabase = createClient();
 
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Detect desktop vs mobile
   useEffect(() => {
@@ -182,7 +186,11 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
               {translation}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => setSearchOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 6, display: "flex", alignItems: "center" }}>
+              <Search size={16} />
+            </button>
+            <div style={{ width: 1, height: 16, background: C.border }} />
             {prevChapter
               ? <Link href={`/bible/${book.id}/${prevChapter}?t=${translation}`} style={{ padding: 6, color: C.textMuted, display: "flex", textDecoration: "none" }}><ChevronLeft size={16} /></Link>
               : <span style={{ padding: 6, opacity: 0.2, display: "flex" }}><ChevronLeft size={16} /></span>}
@@ -194,6 +202,18 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
         </header>
         <main style={{ flex: 1, overflowY: "auto" }}>{children}</main>
       </div>
+
+      {/* Search panel */}
+      {searchOpen && (
+        <SearchPanel
+          translation={translation}
+          currentBookId={book.id}
+          currentChapter={chapter}
+          verses={verses}
+          onClose={() => setSearchOpen(false)}
+          onHighlightVerse={(v) => { onHighlightVerse?.(v); setSearchOpen(false); }}
+        />
+      )}
     </div>
   );
 }

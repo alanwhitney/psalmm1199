@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon } from "lucide-react";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note } from "@/types";
 import { createClient } from "@/lib/supabase/client";
@@ -29,9 +29,11 @@ interface ChapterViewProps {
   initialBookmark: BookmarkType | null;
   initialNote: Note | null;
   openNote?: boolean;
+  onVersesReady?: (verses: { number: number; text: string }[]) => void;
+  externalHighlight?: number | null;
 }
 
-export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, openNote }: ChapterViewProps) {
+export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, openNote, onVersesReady, externalHighlight }: ChapterViewProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -39,6 +41,21 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [note, setNote] = useState<Note | null>(initialNote);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
+
+  // Notify parent of verses, and sync external highlight from search
+  useEffect(() => {
+    if (chapterData) onVersesReady?.(chapterData.verses);
+  }, [chapterData]);
+
+  useEffect(() => {
+    if (externalHighlight != null) {
+      setSelectedVerse(externalHighlight);
+      // Scroll to the verse
+      setTimeout(() => {
+        document.getElementById(`v${externalHighlight}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    }
+  }, [externalHighlight]);
   const [copied, setCopied] = useState(false);
 
   function selectVerse(num: number) {
@@ -220,6 +237,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               return (
                 <div key={verse.number}>
                   <p
+                    id={`v${verse.number}`}
                     onClick={() => selectVerse(verse.number)}
                     style={{
                       margin: "0 0 4px",
