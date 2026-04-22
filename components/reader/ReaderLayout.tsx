@@ -42,6 +42,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    router.push("/");
     router.refresh();
   }
 
@@ -51,75 +52,82 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: C.bg, color: C.textPrimary }}>
 
+      {/* Backdrop */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 30 }} />
       )}
 
-      {/* Sidebar */}
-      <aside style={{
-        width: 272, minWidth: 272, background: C.bgRaised, borderRight: `1px solid ${C.border}`,
-        display: "flex", flexDirection: "column", height: "100vh",
-        position: sidebarOpen ? "fixed" : "relative", left: 0, top: 0,
-        zIndex: sidebarOpen ? 40 : 1,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderBottom: `1px solid ${C.border}` }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-            <BookOpen size={18} color={C.gold} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, letterSpacing: "0.03em" }}>Psalm 119:9</span>
-          </Link>
-          <button onClick={() => setSidebarOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
-            <X size={16} />
-          </button>
-        </div>
-
-        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
-          <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: C.textMuted, marginBottom: 8, fontWeight: 600 }}>Translation</p>
-          <div style={{ display: "flex", gap: 8 }}>
-            {TRANSLATIONS.map((t) => (
-              <button key={t} onClick={() => goTo(book.id, chapter, t)} style={{
-                flex: 1, padding: "6px 0", fontSize: 11, fontWeight: 700, borderRadius: 6, cursor: "pointer",
-                border: t !== translation ? `1px solid ${C.border}` : "none",
-                background: t === translation ? C.gold : C.bgOverlay,
-                color: t === translation ? C.bg : C.textSecondary,
-              }}>{t}</button>
-            ))}
+      {/* Sidebar — hidden by default, shown when sidebarOpen */}
+      {sidebarOpen && (
+        <aside style={{
+          width: 272, background: C.bgRaised, borderRight: `1px solid ${C.border}`,
+          display: "flex", flexDirection: "column", height: "100vh",
+          position: "fixed", left: 0, top: 0, zIndex: 40,
+        }}>
+          {/* Logo */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderBottom: `1px solid ${C.border}` }}>
+            <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+              <BookOpen size={18} color={C.gold} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, letterSpacing: "0.03em" }}>Psalm 119:9</span>
+            </Link>
+            <button onClick={() => setSidebarOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
+              <X size={16} />
+            </button>
           </div>
-        </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-          {[{ label: "Old Testament", books: OT_BOOKS }, { label: "New Testament", books: NT_BOOKS }].map(({ label, books }) => (
-            <div key={label}>
-              <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: C.textMuted, fontWeight: 600, padding: "16px 16px 4px", margin: 0 }}>{label}</p>
-              {books.map((b) => (
-                <BookItem key={b.id} b={b} active={b.id === book.id} activeChapter={b.id === book.id ? chapter : null} onSelect={(ch) => goTo(b.id, ch)} />
+          {/* Translation */}
+          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: C.textMuted, marginBottom: 8, fontWeight: 600 }}>Translation</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              {TRANSLATIONS.map((t) => (
+                <button key={t} onClick={() => goTo(book.id, chapter, t)} style={{
+                  flex: 1, padding: "6px 0", fontSize: 11, fontWeight: 700, borderRadius: 6, cursor: "pointer",
+                  border: t !== translation ? `1px solid ${C.border}` : "none",
+                  background: t === translation ? C.gold : C.bgOverlay,
+                  color: t === translation ? C.bg : C.textSecondary,
+                }}>{t}</button>
               ))}
             </div>
-          ))}
-        </div>
+          </div>
 
-        <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px" }}>
-          {user ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <p style={{ fontSize: 11, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160, margin: 0 }}>{user.email}</p>
-                <Link href="/bookmarks" style={{ fontSize: 11, color: C.textMuted, display: "flex", alignItems: "center", gap: 4, textDecoration: "none", marginTop: 2 }}>
-                  <Bookmark size={11} /> My bookmarks
-                </Link>
+          {/* Book list */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+            {[{ label: "Old Testament", books: OT_BOOKS }, { label: "New Testament", books: NT_BOOKS }].map(({ label, books }) => (
+              <div key={label}>
+                <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: C.textMuted, fontWeight: 600, padding: "16px 16px 4px", margin: 0 }}>{label}</p>
+                {books.map((b) => (
+                  <BookItem key={b.id} b={b} active={b.id === book.id} activeChapter={b.id === book.id ? chapter : null} onSelect={(ch) => goTo(b.id, ch)} />
+                ))}
               </div>
-              <button onClick={handleSignOut} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
-                <LogOut size={16} />
-              </button>
-            </div>
-          ) : (
-            <Link href="/auth/login" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.textSecondary, textDecoration: "none" }}>
-              <LogIn size={16} /> Sign in to save progress
-            </Link>
-          )}
-        </div>
-      </aside>
+            ))}
+          </div>
+
+          {/* User */}
+          <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px" }}>
+            {user ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <p style={{ fontSize: 11, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160, margin: 0 }}>{user.email}</p>
+                  <Link href="/bookmarks" onClick={() => setSidebarOpen(false)} style={{ fontSize: 11, color: C.textMuted, display: "flex", alignItems: "center", gap: 4, textDecoration: "none", marginTop: 2 }}>
+                    <Bookmark size={11} /> My bookmarks
+                  </Link>
+                </div>
+                <button onClick={handleSignOut} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
+                  <LogOut size={16} />
+                </button>
+              </div>
+            ) : (
+              <Link href="/auth/login" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.textSecondary, textDecoration: "none" }}>
+                <LogIn size={16} /> Sign in to save progress
+              </Link>
+            )}
+          </div>
+        </aside>
+      )}
 
       {/* Main */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+        {/* Top bar */}
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: C.bgRaised, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
@@ -134,11 +142,11 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {prevChapter
-              ? <Link href={`/bible/${book.id}/${prevChapter}?t=${translation}`} style={{ padding: 6, color: C.textMuted, display: "flex" }}><ChevronLeft size={16} /></Link>
+              ? <Link href={`/bible/${book.id}/${prevChapter}?t=${translation}`} style={{ padding: 6, color: C.textMuted, display: "flex", textDecoration: "none" }}><ChevronLeft size={16} /></Link>
               : <span style={{ padding: 6, opacity: 0.2, display: "flex" }}><ChevronLeft size={16} /></span>}
             <span style={{ fontSize: 11, color: C.textMuted, padding: "0 4px" }}>{chapter} / {book.chapters}</span>
             {nextChapter
-              ? <Link href={`/bible/${book.id}/${nextChapter}?t=${translation}`} style={{ padding: 6, color: C.textMuted, display: "flex" }}><ChevronRight size={16} /></Link>
+              ? <Link href={`/bible/${book.id}/${nextChapter}?t=${translation}`} style={{ padding: 6, color: C.textMuted, display: "flex", textDecoration: "none" }}><ChevronRight size={16} /></Link>
               : <span style={{ padding: 6, opacity: 0.2, display: "flex" }}><ChevronRight size={16} /></span>}
           </div>
         </header>

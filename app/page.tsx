@@ -1,67 +1,59 @@
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 
+const C = {
+  bg: "#0e0e10",
+  bgRaised: "#18181c",
+  border: "#2a2a32",
+  gold: "#c9a84c",
+  goldMuted: "#8a6e2f",
+  textPrimary: "#f0ede6",
+  textSecondary: "#9d9a95",
+  textMuted: "#5a5855",
+};
+
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 bg-surface">
-      {/* Subtle radial glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(201,168,76,0.06) 0%, transparent 70%)",
-        }}
-      />
+    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", background: C.bg, position: "relative" }}>
+      {/* Glow */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(201,168,76,0.06) 0%, transparent 70%)" }} />
 
-      <div className="relative z-10 text-center max-w-lg animate-fade-in">
+      <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 480 }}>
         {/* Icon */}
-        <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-surface-raised border border-border-subtle flex items-center justify-center">
-            <BookOpen className="w-7 h-7 text-gold" />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 16, background: C.bgRaised, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <BookOpen size={28} color={C.gold} />
           </div>
         </div>
 
         {/* Title */}
-        <h1
-          className="text-4xl font-light tracking-tight mb-3"
-          style={{ fontFamily: "var(--font-reading)", color: "var(--text-primary)" }}
-        >
+        <h1 style={{ fontSize: 36, fontWeight: 300, letterSpacing: "-0.02em", marginBottom: 8, color: C.textPrimary, fontFamily: "var(--font-reading, Georgia, serif)" }}>
           Psalm 119:9
         </h1>
 
-        {/* Reference */}
-        <p className="text-sm text-text-muted mb-2 tracking-wider uppercase font-medium">
+        <p style={{ fontSize: 11, color: C.textMuted, marginBottom: 8, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
           Bible Reader
         </p>
 
-        <div className="gold-divider my-6 mx-auto w-24" />
+        {/* Gold divider */}
+        <div style={{ height: 1, width: 96, margin: "20px auto", background: `linear-gradient(to right, transparent, ${C.goldMuted}, transparent)` }} />
 
         {/* Verse */}
-        <p
-          className="text-text-secondary text-base mb-10 leading-relaxed italic"
-          style={{ fontFamily: "var(--font-reading)" }}
-        >
-          "Wherewithal shall a young man cleanse his way? By taking heed thereto
-          according to thy word."
+        <p style={{ color: C.textSecondary, fontSize: 15, marginBottom: 40, lineHeight: 1.7, fontStyle: "italic", fontFamily: "var(--font-reading, Georgia, serif)" }}>
+          "Wherewithal shall a young man cleanse his way? By taking heed thereto according to thy word."
         </p>
 
-        {/* CTA */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/bible/PSA/119"
-            className="px-6 py-3 bg-gold text-surface font-semibold text-sm rounded-lg hover:bg-gold-bright transition-colors"
-          >
+        {/* Buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+          <Link href="/bible/PSA/119" style={{ padding: "12px 32px", background: C.gold, color: C.bg, fontWeight: 700, fontSize: 13, borderRadius: 8, textDecoration: "none", display: "inline-block" }}>
             Open Bible
           </Link>
-          <Link
-            href="/auth/login"
-            className="px-6 py-3 bg-surface-raised border border-border text-text-primary text-sm rounded-lg hover:border-gold hover:text-gold transition-colors"
-          >
+          <Link href="/auth/login" style={{ padding: "12px 32px", background: C.bgRaised, border: `1px solid ${C.border}`, color: C.textPrimary, fontSize: 13, borderRadius: 8, textDecoration: "none", display: "inline-block" }}>
             Sign in
           </Link>
         </div>
 
-        <p className="mt-6 text-text-muted text-xs">
+        <p style={{ marginTop: 24, color: C.textMuted, fontSize: 11 }}>
           No account needed to read — sign in to save bookmarks & notes
         </p>
       </div>
