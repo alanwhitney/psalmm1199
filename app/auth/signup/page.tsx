@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getLastPositionUrl } from "@/lib/last-position";
 
 const C = {
   bg: "#0e0e10",
@@ -153,7 +154,7 @@ export default function SignupPage() {
         </p>
 
         <p style={{ textAlign: "center", marginTop: 12 }}>
-          <Link href="/bible/PSA/119" style={{ fontSize: 12, color: C.textMuted, textDecoration: "none" }}>
+          <Link href={typeof window !== "undefined" ? getLastPositionUrl() : "/bible/PSA/119"} style={{ fontSize: 12, color: C.textMuted, textDecoration: "none" }}>
             Continue reading without an account →
           </Link>
         </p>

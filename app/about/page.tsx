@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { BookOpen, ArrowLeft } from "lucide-react";
+import { cookies } from "next/headers";
+import { lastPositionUrl } from "@/lib/last-position";
 
 const C = {
   bg: "#0e0e10",
@@ -17,13 +19,15 @@ export const metadata = {
   title: "About — Psalm 119:9",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const cookieStore = await cookies();
+  const backHref = lastPositionUrl(cookieStore.get("last_position")?.value);
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.textPrimary }}>
       {/* Header */}
       <header style={{ background: C.bgRaised, borderBottom: `1px solid ${C.border}`, padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/bible/PSA/119" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", color: C.textMuted, fontSize: 13 }}>
+          <Link href={backHref} style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", color: C.textMuted, fontSize: 13 }}>
             <ArrowLeft size={15} /> Back to reading
           </Link>
           <div style={{ width: 1, height: 16, background: C.border }} />
@@ -99,7 +103,7 @@ export default function AboutPage() {
 
         {/* CTA */}
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/bible/PSA/119" style={{ padding: "10px 24px", background: C.gold, color: C.bg, fontWeight: 700, fontSize: 13, borderRadius: 8, textDecoration: "none" }}>
+          <Link href={backHref} style={{ padding: "10px 24px", background: C.gold, color: C.bg, fontWeight: 700, fontSize: 13, borderRadius: 8, textDecoration: "none" }}>
             Start Reading
           </Link>
           <Link href="/auth/signup" style={{ padding: "10px 24px", background: C.bgRaised, border: `1px solid ${C.border}`, color: C.textPrimary, fontSize: 13, borderRadius: 8, textDecoration: "none" }}>

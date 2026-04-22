@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { lastPositionUrl } from "@/lib/last-position";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/bible/PSA/119";
+  const cookieStore2 = await cookies();
+  const lastPos = cookieStore2.get("last_position")?.value;
+  const next = searchParams.get("next") ?? lastPositionUrl(lastPos);
 
   if (code) {
     const cookieStore = await cookies();

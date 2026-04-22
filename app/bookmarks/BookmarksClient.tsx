@@ -29,11 +29,12 @@ interface Props {
   userId: string;
   userPlans: { id: string; plan_id: string; started_at: string; translation: string; active: boolean }[];
   completions: { plan_id: string; day: number }[];
+  backHref: string;
 }
 
 type Tab = "bookmarks" | "notes" | "plan";
 
-export default function BookmarksClient({ bookmarks: initial, notes, userEmail, userId, userPlans, completions }: Props) {
+export default function BookmarksClient({ bookmarks: initial, notes, userEmail, userId, userPlans, completions, backHref }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const searchParams = useSearchParams();
@@ -62,7 +63,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
       {/* Header */}
       <header style={{ background: C.bgRaised, borderBottom: `1px solid ${C.border}`, padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/bible/PSA/119" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", color: C.textMuted, fontSize: 13 }}>
+          <Link href={backHref} style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", color: C.textMuted, fontSize: 13 }}>
             <ArrowLeft size={15} /> Back to reading
           </Link>
           <div style={{ width: 1, height: 16, background: C.border }} />

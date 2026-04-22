@@ -47,6 +47,11 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     if (chapterData) onVersesReady?.(chapterData.verses);
   }, [chapterData]);
 
+  // Remember last position in a cookie
+  useEffect(() => {
+    document.cookie = `last_position=${book.id}:${chapter}:${translation};path=/;max-age=${60 * 60 * 24 * 365}`;
+  }, [book.id, chapter, translation]);
+
   useEffect(() => {
     if (externalHighlight != null) {
       setSelectedVerse(externalHighlight);

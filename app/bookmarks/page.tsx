@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { lastPositionUrl } from "@/lib/last-position";
 import BookmarksClient from "./BookmarksClient";
 
 export default async function BookmarksPage() {
@@ -7,6 +9,9 @@ export default async function BookmarksPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect("/auth/login");
+
+  const cookieStore = await cookies();
+  const backHref = lastPositionUrl(cookieStore.get("last_position")?.value);
 
   const [
     { data: bookmarks },
@@ -28,6 +33,7 @@ export default async function BookmarksPage() {
       userId={user.id}
       userPlans={userPlans ?? []}
       completions={completions ?? []}
+      backHref={backHref}
     />
   );
 }

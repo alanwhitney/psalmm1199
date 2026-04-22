@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getLastPositionUrl } from "@/lib/last-position";
 
 const C = {
   bg: "#0e0e10",
@@ -39,7 +40,7 @@ export default function LoginPage() {
     } else {
       // Refresh first to sync session cookies, then navigate
       router.refresh();
-      router.push("/bible/PSA/119");
+      router.push(getLastPositionUrl());
     }
   }
 
