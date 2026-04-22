@@ -174,14 +174,24 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
           {/* Bible text */}
           <div style={{ fontFamily: "var(--font-reading, Georgia, serif)", fontSize: 17, lineHeight: 2, color: C.textPrimary }}>
-            {chapterData.verses.map((verse) => (
-              <p key={verse.number} style={{ marginBottom: 12, margin: "0 0 14px" }}>
-                <sup style={{ fontSize: 10, fontWeight: 700, color: C.goldMuted, marginRight: 3, fontFamily: "ui-sans-serif, system-ui", verticalAlign: "super", userSelect: "none" }}>
-                  {verse.number}
-                </sup>
-                {verse.text}
-              </p>
-            ))}
+            {chapterData.verses.map((verse) => {
+              // Split on \n to render poetic line breaks
+              const lines = verse.text.split("\n");
+              return (
+                <p key={verse.number} style={{ margin: "0 0 16px" }}>
+                  <sup style={{ fontSize: 10, fontWeight: 700, color: C.goldMuted, marginRight: 3, fontFamily: "ui-sans-serif, system-ui", verticalAlign: "super", userSelect: "none" }}>
+                    {verse.number}
+                  </sup>
+                  {lines.map((line, i) => (
+                    <span key={i}>
+                      {i > 0 && <br />}
+                      {i > 0 && <span style={{ display: "inline-block", width: 24 }} />}
+                      {line.trim()}
+                    </span>
+                  ))}
+                </p>
+              );
+            })}
           </div>
 
           {/* Prev / Next navigation */}
