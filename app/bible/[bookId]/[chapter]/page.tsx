@@ -8,7 +8,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 interface PageProps {
   params: Promise<{ bookId: string; chapter: string }>;
-  searchParams: Promise<{ t?: string }>;
+  searchParams: Promise<{ t?: string; note?: string }>;
 }
 
 export default async function BiblePage({ params, searchParams }: PageProps) {
