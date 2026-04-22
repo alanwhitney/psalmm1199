@@ -94,7 +94,7 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
     setUserPlans(prev => prev.filter(p => p.plan_id !== planId));
     setCompletions(prev => {
       const next = new Set(prev);
-      Array.from(next).filter(k => k.startsWith(`${planId}:`)).forEach(k => next.delete(k));
+      Array.from(next.values()).filter((k: string) => k.startsWith(`${planId}:`)).forEach((k: string) => next.delete(k));
       return next;
     });
     if (activePlanId === planId) setActivePlanId(userPlans.find(p => p.plan_id !== planId)?.plan_id ?? null);
@@ -110,7 +110,7 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
       setCompletions(prev => { const n = new Set(prev); n.delete(key); return n; });
     } else {
       await supabase.from("plan_completions").insert({ user_id: userId, plan_id: planId, day });
-      setCompletions(prev => new Set([...prev, key]));
+      setCompletions(prev => { const n = new Set(prev); n.add(key); return n; });
     }
   }
 
