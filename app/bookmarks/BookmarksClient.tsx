@@ -183,7 +183,7 @@ function BookmarkCard({ bookmark, onDelete }: { bookmark: BookmarkType; onDelete
 function NoteCard({ note }: { note: Props["notes"][0] }) {
   const preview = note.content.length > 120 ? note.content.slice(0, 120) + "…" : note.content;
   return (
-    <Link href={`/bible/${note.book_id}/${note.chapter}?t=${note.translation}`} style={{ textDecoration: "none", display: "block", background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px" }}>
+    <Link href={`/bible/${note.book_id}/${note.chapter}?t=${note.translation}&note=1`} style={{ textDecoration: "none", display: "block", background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
         <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: 0 }}>{note.book_name} {note.chapter}</p>
         <span style={{ fontSize: 11, color: C.textMuted, flexShrink: 0 }}>{new Date(note.updated_at).toLocaleDateString()}</span>
