@@ -22,7 +22,7 @@ const C = {
 
 interface Props {
   bookmarks: BookmarkType[];
-  notes: Pick<Note, "id" | "book_name" | "chapter" | "translation" | "updated_at" | "content">[];
+  notes: Pick<Note, "id" | "book_id" | "book_name" | "chapter" | "translation" | "updated_at" | "content">[];
   userEmail: string;
 }
 
@@ -191,7 +191,7 @@ function NoteCard({ note }: { note: Props["notes"][0] }) {
 
   return (
     <Link
-      href={`/bible/${note.book_name.replace(/\s+/g, "")}/${note.chapter}?t=${note.translation}`}
+      href={`/bible/${note.book_id}/${note.chapter}?t=${note.translation}`}
       style={{ textDecoration: "none", display: "block", background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px" }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>

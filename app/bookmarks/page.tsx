@@ -18,7 +18,7 @@ export default async function BookmarksPage() {
 
   const { data: notes } = await supabase
     .from("notes")
-    .select("id, book_name, chapter, translation, updated_at, content")
+    .select("id, book_id, book_name, chapter, translation, updated_at, content")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
