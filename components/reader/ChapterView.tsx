@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon } from "lucide-react";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -38,6 +38,37 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
   const [note, setNote] = useState<Note | null>(initialNote);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
+  const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function selectVerse(num: number) {
+    setSelectedVerse(prev => prev === num ? null : num);
+    setCopied(false);
+  }
+
+  function getVerseText(num: number) {
+    const verse = chapterData?.verses.find(v => v.number === num);
+    return verse ? verse.text.replace(/\n/g, " ").trim() : "";
+  }
+
+  function formatShareText(num: number) {
+    return `"${getVerseText(num)}" — ${book.name} ${chapter}:${num} (${translation})`;
+  }
+
+  async function copyVerse(num: number) {
+    await navigator.clipboard.writeText(formatShareText(num));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function shareVerse(num: number) {
+    const text = formatShareText(num);
+    if (navigator.share) {
+      await navigator.share({ text });
+    } else {
+      await copyVerse(num);
+    }
+  }
   const [noteContent, setNoteContent] = useState(initialNote?.content ?? "");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
@@ -184,21 +215,64 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           {/* Bible text */}
           <div style={{ fontFamily: "var(--font-reading, Georgia, serif)", fontSize: 17, lineHeight: 2, color: C.textPrimary }}>
             {chapterData.verses.map((verse) => {
-              // Split on \n to render poetic line breaks
               const lines = verse.text.split("\n");
+              const isSelected = selectedVerse === verse.number;
               return (
-                <p key={verse.number} style={{ margin: "0 0 16px" }}>
-                  <sup style={{ fontSize: 10, fontWeight: 700, color: C.goldMuted, marginRight: 3, fontFamily: "ui-sans-serif, system-ui", verticalAlign: "super", userSelect: "none" }}>
-                    {verse.number}
-                  </sup>
-                  {lines.map((line, i) => (
-                    <span key={i}>
-                      {i > 0 && <br />}
-                      {i > 0 && <span style={{ display: "inline-block", width: 24 }} />}
-                      {line.trim()}
-                    </span>
-                  ))}
-                </p>
+                <div key={verse.number}>
+                  <p
+                    onClick={() => selectVerse(verse.number)}
+                    style={{
+                      margin: "0 0 4px",
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      background: isSelected ? `${C.gold}12` : "transparent",
+                      borderLeft: isSelected ? `2px solid ${C.gold}` : "2px solid transparent",
+                      transition: "background 0.15s",
+                    }}
+                  >
+                    <sup style={{ fontSize: 10, fontWeight: 700, color: isSelected ? C.gold : C.goldMuted, marginRight: 3, fontFamily: "ui-sans-serif, system-ui", verticalAlign: "super", userSelect: "none" }}>
+                      {verse.number}
+                    </sup>
+                    {lines.map((line, i) => (
+                      <span key={i}>
+                        {i > 0 && <br />}
+                        {i > 0 && <span style={{ display: "inline-block", width: 24 }} />}
+                        {line.trim()}
+                      </span>
+                    ))}
+                  </p>
+
+                  {/* Share popover */}
+                  {isSelected && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", marginBottom: 8, background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, color: C.textMuted, marginRight: 4 }}>
+                        {book.name} {chapter}:{verse.number}
+                      </span>
+                      <button
+                        onClick={() => copyVerse(verse.number)}
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 11, fontWeight: 600, color: copied ? C.gold : C.textSecondary, cursor: "pointer" }}
+                      >
+                        {copied ? <Check size={12} /> : <Copy size={12} />}
+                        {copied ? "Copied!" : "Copy"}
+                      </button>
+                      {typeof navigator !== "undefined" && "share" in navigator && (
+                        <button
+                          onClick={() => shareVerse(verse.number)}
+                          style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 11, fontWeight: 600, color: C.textSecondary, cursor: "pointer" }}
+                        >
+                          <Share2 size={12} /> Share
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSelectedVerse(null)}
+                        style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 2 }}
+                      >
+                        <XIcon size={13} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
