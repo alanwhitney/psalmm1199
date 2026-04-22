@@ -28,15 +28,16 @@ interface ChapterViewProps {
   user: { id: string; email?: string } | null;
   initialBookmark: BookmarkType | null;
   initialNote: Note | null;
+  openNote?: boolean;
 }
 
-export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote }: ChapterViewProps) {
+export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, openNote }: ChapterViewProps) {
   const router = useRouter();
   const supabase = createClient();
 
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
   const [note, setNote] = useState<Note | null>(initialNote);
-  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(openNote ?? false);
   const [noteContent, setNoteContent] = useState(initialNote?.content ?? "");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);

@@ -13,7 +13,7 @@ interface PageProps {
 
 export default async function BiblePage({ params, searchParams }: PageProps) {
   const { bookId, chapter: chapterStr } = await params;
-  const { t } = await searchParams;
+  const { t, note: noteParam } = await searchParams;
 
   const book = BOOK_BY_ID[bookId.toUpperCase()];
   if (!book) return notFound();
@@ -84,6 +84,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
         user={user}
         initialBookmark={bookmark}
         initialNote={note}
+        openNote={noteParam === "1"}
       />
     </ReaderLayout>
   );
