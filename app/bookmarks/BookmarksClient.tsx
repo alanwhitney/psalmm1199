@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BookOpen, Bookmark, StickyNote, Trash2, LogOut, ChevronRight, ArrowLeft, CalendarDays } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
 import PlanTab from "./PlanTab";
@@ -35,7 +36,8 @@ type Tab = "bookmarks" | "notes" | "plan";
 export default function BookmarksClient({ bookmarks: initial, notes, userEmail, userId, userPlans, completions }: Props) {
   const router = useRouter();
   const supabase = createClient();
-  const [tab, setTab] = useState<Tab>("bookmarks");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) ?? "bookmarks");
   const [bookmarks, setBookmarks] = useState(initial);
 
   async function deleteBookmark(id: string) {

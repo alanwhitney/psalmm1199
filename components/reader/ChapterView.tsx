@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2 } from "lucide-react";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -82,6 +82,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     setNoteSaving(false);
     setNoteSaved(true);
     setTimeout(() => setNoteSaved(false), 2000);
+  }
+
+  async function deleteNote() {
+    if (!note) return;
+    await supabase.from("notes").delete().eq("id", note.id);
+    setNote(null);
+    setNoteContent("");
+    setNoteOpen(false);
   }
 
   if (!chapterData) {
@@ -223,7 +231,16 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
             value={noteContent}
             onChange={(e) => setNoteContent(e.target.value)}
           />
-          <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            {note && (
+              <button
+                onClick={deleteNote}
+                title="Delete note"
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4, display: "flex", flexShrink: 0 }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
             {note?.updated_at && (
               <span style={{ fontSize: 11, color: C.textMuted }}>Saved {new Date(note.updated_at).toLocaleDateString()}</span>
             )}

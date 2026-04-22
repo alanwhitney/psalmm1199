@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays } from "lucide-react";
 import { Book, Translation } from "@/types";
 import { OT_BOOKS, NT_BOOKS } from "@/lib/books";
 import { createClient } from "@/lib/supabase/client";
@@ -119,16 +119,27 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
         ))}
       </div>
 
+      {/* Navigation links */}
+      {user && (
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: "8px 12px" }}>
+          <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: C.textMuted, fontWeight: 600, padding: "4px 4px 6px", margin: 0 }}>My Reading</p>
+          {[
+            { href: "/bookmarks", icon: <Bookmark size={13} />, label: "Bookmarks & Notes" },
+            { href: "/bookmarks?tab=plan", icon: <CalendarDays size={13} />, label: "Reading Plan" },
+          ].map(({ href, icon, label }) => (
+            <Link key={href} href={href} onClick={() => setMobileOpen(false)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 4px", fontSize: 12, color: C.textSecondary, textDecoration: "none", borderRadius: 6 }}>
+              <span style={{ color: C.gold }}>{icon}</span>
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* User */}
       <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px" }}>
         {user ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: 11, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160, margin: 0 }}>{user.email}</p>
-              <Link href="/bookmarks" onClick={() => setMobileOpen(false)} style={{ fontSize: 11, color: C.textMuted, display: "flex", alignItems: "center", gap: 4, textDecoration: "none", marginTop: 2 }}>
-                <Bookmark size={11} /> My bookmarks
-              </Link>
-            </div>
+            <p style={{ fontSize: 11, color: C.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180, margin: 0 }}>{user.email}</p>
             <button onClick={handleSignOut} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4, flexShrink: 0 }}>
               <LogOut size={16} />
             </button>
