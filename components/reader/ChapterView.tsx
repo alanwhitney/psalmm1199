@@ -94,6 +94,11 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [noteContent, setNoteContent] = useState(initialNote?.content ?? "");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const noteRef = useRef(note);
+  const noteContentRef = useRef(noteContent);
+  useEffect(() => { noteRef.current = note; }, [note]);
+  useEffect(() => { noteContentRef.current = noteContent; }, [noteContent]);
   const [bookmarkLabel, setBookmarkLabel] = useState(initialBookmark?.label ?? "");
   const [labelEditing, setLabelEditing] = useState(false);
 
@@ -120,22 +125,31 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     setBookmark({ ...bookmark, label: bookmarkLabel });
   }
 
-  async function saveNote() {
+  const saveNote = useCallback(async (content?: string) => {
     if (!user) return;
+    const textToSave = content ?? noteContentRef.current;
+    if (!textToSave.trim() && !noteRef.current) return; // don't save empty new notes
     setNoteSaving(true);
-    if (note) {
-      const { data } = await supabase.from("notes").update({ content: noteContent }).eq("id", note.id).select().single();
-      setNote(data);
+    if (noteRef.current) {
+      const { data } = await supabase.from("notes").update({ content: textToSave }).eq("id", noteRef.current.id).select().single();
+      if (data) { setNote(data); noteRef.current = data; }
     } else {
       const { data } = await supabase.from("notes").insert({
         user_id: user.id, book_id: book.id, book_name: book.name,
-        chapter, translation, content: noteContent,
+        chapter, translation, content: textToSave,
       }).select().single();
-      setNote(data);
+      if (data) { setNote(data); noteRef.current = data; }
     }
     setNoteSaving(false);
     setNoteSaved(true);
     setTimeout(() => setNoteSaved(false), 2000);
+  }, [user, book, chapter, translation, supabase]);
+
+  function handleNoteChange(value: string) {
+    setNoteContent(value);
+    // Auto-save after 1.5 seconds of no typing
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => saveNote(value), 1500);
   }
 
   async function deleteNote() {
@@ -327,7 +341,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
             style={{ flex: 1, background: "transparent", color: C.textPrimary, fontSize: 13, padding: 16, resize: "none", border: "none", outline: "none", lineHeight: 1.7, fontFamily: "inherit" }}
             placeholder={`Write your notes for ${book.name} ${chapter}…`}
             value={noteContent}
-            onChange={(e) => setNoteContent(e.target.value)}
+            onChange={(e) => handleNoteChange(e.target.value)}
           />
           <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             {note && (
@@ -347,7 +361,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               disabled={noteSaving}
               style={{ marginLeft: "auto", padding: "6px 14px", background: C.gold, color: C.bg, fontSize: 12, fontWeight: 700, borderRadius: 6, border: "none", cursor: noteSaving ? "not-allowed" : "pointer", opacity: noteSaving ? 0.6 : 1 }}
             >
-              {noteSaving ? "Saving…" : noteSaved ? "Saved ✓" : "Save note"}
+              {noteSaving ? "Saving…" : noteSaved ? "Saved ✓" : "Save"}
             </button>
           </div>
         </div>
