@@ -357,7 +357,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               <span style={{ fontSize: 11, color: C.textMuted }}>Saved {new Date(note.updated_at).toLocaleDateString()}</span>
             )}
             <button
-              onClick={saveNote}
+              onClick={() => saveNote()}
               disabled={noteSaving}
               style={{ marginLeft: "auto", padding: "6px 14px", background: C.gold, color: C.bg, fontSize: 12, fontWeight: 700, borderRadius: 6, border: "none", cursor: noteSaving ? "not-allowed" : "pointer", opacity: noteSaving ? 0.6 : 1 }}
             >
