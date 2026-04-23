@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon } from "lucide-react";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note } from "@/types";
 import { createClient } from "@/lib/supabase/client";
