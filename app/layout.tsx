@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${inter.variable} ${lora.variable} antialiased bg-surface text-text-primary min-h-screen`}
+        className={`${inter.variable} ${lora.variable} antialiased bg-surface text-ink-primary min-h-screen`}
       >
         {children}
       </body>

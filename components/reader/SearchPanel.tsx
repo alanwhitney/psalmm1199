@@ -5,19 +5,6 @@ import { useRouter } from "next/navigation";
 import { Search, X, BookOpen, Loader2 } from "lucide-react";
 import { Translation } from "@/types";
 
-const C = {
-  bg: "#0e0e10",
-  bgRaised: "#18181c",
-  bgOverlay: "#222228",
-  border: "#2a2a32",
-  borderDefault: "#3a3a46",
-  gold: "#c9a84c",
-  goldMuted: "#8a6e2f",
-  textPrimary: "#f0ede6",
-  textSecondary: "#9d9a95",
-  textMuted: "#5a5855",
-};
-
 interface SearchResult {
   id: string;
   reference: string;
@@ -58,7 +45,6 @@ export default function SearchPanel({
     inputRef.current?.focus();
   }, []);
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
@@ -122,7 +108,7 @@ export default function SearchPanel({
     return (
       <>
         {text.slice(0, idx)}
-        <mark style={{ background: `${C.gold}40`, color: C.textPrimary, borderRadius: 2, padding: "0 1px" }}>
+        <mark className="bg-gold/25 text-ink-primary rounded-[2px] px-px">
           {text.slice(idx, idx + q.length)}
         </mark>
         {text.slice(idx + q.length)}
@@ -133,78 +119,70 @@ export default function SearchPanel({
   return (
     <>
       {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 50 }}
-      />
+      <div onClick={onClose} className="fixed inset-0 bg-black/50 z-50" />
 
       {/* Panel */}
-      <div style={{
-        position: "fixed", top: 0, right: 0, bottom: 0, width: "100%", maxWidth: 480,
-        background: C.bgRaised, borderLeft: `1px solid ${C.border}`,
-        zIndex: 51, display: "flex", flexDirection: "column",
-      }}>
+      <div className="fixed top-0 right-0 bottom-0 w-full max-w-[480px] bg-surface-raised border-l border-l-line-subtle z-[51] flex flex-col">
         {/* Header */}
-        <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-          <Search size={16} color={C.textMuted} />
+        <div className="px-4 py-[14px] border-b border-b-line-subtle flex items-center gap-[10px]">
+          <Search size={16} className="text-ink-muted" />
           <input
             ref={inputRef}
             value={query}
             onChange={e => handleChange(e.target.value)}
             placeholder="Search scripture…"
-            style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 15, color: C.textPrimary, fontFamily: "inherit" }}
+            className="flex-1 bg-transparent border-none outline-none text-[15px] text-ink-primary font-[inherit]"
           />
           {query && (
-            <button onClick={() => { setQuery(""); setResults([]); setChapterMatches([]); onHighlightVerse(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 2 }}>
+            <button onClick={() => { setQuery(""); setResults([]); setChapterMatches([]); onHighlightVerse(null); }} className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
               <X size={15} />
             </button>
           )}
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
+          <button onClick={onClose} className="bg-transparent border-none cursor-pointer text-ink-muted p-1">
             <X size={18} />
           </button>
         </div>
 
         {/* Scope toggle */}
-        <div style={{ display: "flex", padding: "10px 16px", gap: 8, borderBottom: `1px solid ${C.border}` }}>
+        <div className="flex px-4 py-[10px] gap-2 border-b border-b-line-subtle">
           {([["bible", "Full Bible"], ["chapter", "This Chapter"]] as const).map(([key, label]) => (
             <button
               key={key}
               onClick={() => handleScopeChange(key)}
-              style={{
-                padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: `1px solid ${scope === key ? C.gold : C.border}`,
-                background: scope === key ? `${C.gold}18` : C.bgOverlay,
-                color: scope === key ? C.gold : C.textSecondary,
-              }}
+              className={`px-[14px] py-[5px] rounded-full text-xs font-semibold cursor-pointer border ${
+                scope === key
+                  ? "border-gold bg-gold/[9%] text-gold"
+                  : "border-line-subtle bg-surface-overlay text-ink-secondary"
+              }`}
             >{label}</button>
           ))}
-          <span style={{ fontSize: 11, color: C.textMuted, alignSelf: "center", marginLeft: 4 }}>{translation}</span>
+          <span className="text-[11px] text-ink-muted self-center ml-1">{translation}</span>
         </div>
 
         {/* Results */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div className="flex-1 overflow-y-auto">
           {/* Loading */}
           {loading && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, gap: 10, color: C.textMuted }}>
-              <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
-              <span style={{ fontSize: 13 }}>Searching…</span>
+            <div className="flex items-center justify-center p-10 gap-[10px] text-ink-muted">
+              <Loader2 size={18} className="animate-spin" />
+              <span className="text-[13px]">Searching…</span>
             </div>
           )}
 
           {/* Chapter results */}
           {!loading && scope === "chapter" && chapterMatches.length > 0 && (
             <div>
-              <p style={{ fontSize: 11, color: C.textMuted, padding: "12px 16px 4px", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+              <p className="text-[11px] text-ink-muted px-4 pt-3 pb-1 uppercase tracking-[0.08em] font-semibold">
                 {chapterMatches.length} match{chapterMatches.length !== 1 ? "es" : ""} in this chapter
               </p>
               {chapterMatches.map(v => (
                 <button
                   key={v.number}
                   onClick={() => { onHighlightVerse(v.number); onClose(); }}
-                  style={{ width: "100%", textAlign: "left", padding: "12px 16px", background: "none", border: "none", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}
+                  className="w-full text-left px-4 py-3 bg-transparent border-none border-b border-b-line-subtle cursor-pointer"
                 >
-                  <p style={{ fontSize: 11, color: C.gold, fontWeight: 700, margin: "0 0 4px" }}>Verse {v.number}</p>
-                  <p style={{ fontSize: 13, color: C.textSecondary, margin: 0, lineHeight: 1.6 }}>
+                  <p className="text-[11px] text-gold font-bold mb-1">{v.number}</p>
+                  <p className="text-[13px] text-ink-secondary m-0 leading-[1.6]">
                     {highlightMatch(v.text.replace(/\n/g, " "), query)}
                   </p>
                 </button>
@@ -214,28 +192,28 @@ export default function SearchPanel({
 
           {/* Chapter no results */}
           {!loading && scope === "chapter" && query.trim() && chapterMatches.length === 0 && (
-            <div style={{ textAlign: "center", padding: "48px 24px", color: C.textMuted }}>
-              <p style={{ fontSize: 13 }}>No matches in this chapter</p>
+            <div className="text-center py-12 px-6 text-ink-muted">
+              <p className="text-[13px]">No matches in this chapter</p>
             </div>
           )}
 
           {/* Bible results */}
           {!loading && scope === "bible" && results.length > 0 && (
             <div>
-              <p style={{ fontSize: 11, color: C.textMuted, padding: "12px 16px 4px", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+              <p className="text-[11px] text-ink-muted px-4 pt-3 pb-1 uppercase tracking-[0.08em] font-semibold">
                 {results.length} result{results.length !== 1 ? "s" : ""}
               </p>
               {results.map(r => (
                 <button
                   key={r.id}
                   onClick={() => goToResult(r)}
-                  style={{ width: "100%", textAlign: "left", padding: "12px 16px", background: "none", border: "none", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}
+                  className="w-full text-left px-4 py-3 bg-transparent border-none border-b border-b-line-subtle cursor-pointer"
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <BookOpen size={11} color={C.gold} />
-                    <p style={{ fontSize: 11, color: C.gold, fontWeight: 700, margin: 0 }}>{r.reference}</p>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <BookOpen size={11} className="text-gold" />
+                    <p className="text-[11px] text-gold font-bold m-0">{r.reference}</p>
                   </div>
-                  <p style={{ fontSize: 13, color: C.textSecondary, margin: 0, lineHeight: 1.6 }}>
+                  <p className="text-[13px] text-ink-secondary m-0 leading-[1.6]">
                     {highlightMatch(r.text.replace(/\n/g, " "), query)}
                   </p>
                 </button>
@@ -244,24 +222,22 @@ export default function SearchPanel({
           )}
 
           {/* Bible no results */}
-          {!loading && scope === "bible" && searched && results.length === 0 && !loading && (
-            <div style={{ textAlign: "center", padding: "48px 24px", color: C.textMuted }}>
-              <p style={{ fontSize: 13 }}>No results found for "{query}"</p>
-              <p style={{ fontSize: 12, marginTop: 8 }}>Try different keywords or check the spelling</p>
+          {!loading && scope === "bible" && searched && results.length === 0 && (
+            <div className="text-center py-12 px-6 text-ink-muted">
+              <p className="text-[13px]">No results found for &quot;{query}&quot;</p>
+              <p className="text-xs mt-2">Try different keywords or check the spelling</p>
             </div>
           )}
 
           {/* Empty state */}
           {!query && (
-            <div style={{ textAlign: "center", padding: "48px 24px", color: C.textMuted }}>
-              <Search size={28} style={{ margin: "0 auto 12px", opacity: 0.3 }} />
-              <p style={{ fontSize: 13 }}>Type to search {scope === "chapter" ? "this chapter" : "the Bible"}</p>
-              <p style={{ fontSize: 12, marginTop: 6 }}>Searching in {translation}</p>
+            <div className="text-center py-12 px-6 text-ink-muted">
+              <Search size={28} className="mx-auto mb-3 opacity-30" />
+              <p className="text-[13px]">Type to search {scope === "chapter" ? "this chapter" : "the Bible"}</p>
+              <p className="text-xs mt-1.5">Searching in {translation}</p>
             </div>
           )}
         </div>
-
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     </>
   );

@@ -9,19 +9,6 @@ import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
 import PlanTab from "./PlanTab";
 
-const C = {
-  bg: "#0e0e10",
-  bgRaised: "#18181c",
-  bgOverlay: "#222228",
-  border: "#2a2a32",
-  borderDefault: "#3a3a46",
-  gold: "#c9a84c",
-  goldMuted: "#8a6e2f",
-  textPrimary: "#f0ede6",
-  textSecondary: "#9d9a95",
-  textMuted: "#5a5855",
-};
-
 interface Props {
   bookmarks: BookmarkType[];
   notes: Pick<Note, "id" | "book_id" | "book_name" | "chapter" | "translation" | "updated_at" | "content">[];
@@ -59,49 +46,46 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.textPrimary }}>
+    <div className="min-h-screen bg-surface text-ink-primary">
       {/* Header */}
-      <header style={{ background: C.bgRaised, borderBottom: `1px solid ${C.border}`, padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href={backHref} style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", color: C.textMuted, fontSize: 13 }}>
+      <header className="bg-surface-raised border-b border-b-line-subtle px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href={backHref} className="flex items-center gap-1.5 no-underline text-ink-muted text-[13px]">
             <ArrowLeft size={15} /> Back to reading
           </Link>
-          <div style={{ width: 1, height: 16, background: C.border }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <BookOpen size={16} color={C.gold} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Psalm 119:9</span>
+          <div className="w-px h-4 bg-line-subtle" />
+          <div className="flex items-center gap-2">
+            <BookOpen size={16} className="text-gold" />
+            <span className="text-[13px] font-semibold text-ink-primary">Psalm 119:9</span>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontSize: 12, color: C.textMuted }}>{userEmail}</span>
-          <button onClick={handleSignOut} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: 0 }}>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-ink-muted">{userEmail}</span>
+          <button onClick={handleSignOut} className="bg-transparent border-none cursor-pointer text-ink-muted flex items-center gap-1.5 text-xs p-0">
             <LogOut size={14} /> Sign out
           </button>
         </div>
       </header>
 
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 300, color: C.textPrimary, margin: "0 0 8px", fontFamily: "var(--font-reading, Georgia, serif)" }}>
+      <div className="max-w-[720px] mx-auto py-10 px-6">
+        <h1 className="text-2xl font-light text-ink-primary mb-2 font-reading">
           My Reading
         </h1>
-        <p style={{ fontSize: 13, color: C.textMuted, margin: "0 0 32px" }}>
+        <p className="text-[13px] text-ink-muted mb-8">
           {bookmarks.length} bookmark{bookmarks.length !== 1 ? "s" : ""} · {notes.length} note{notes.length !== 1 ? "s" : ""} · {userPlans.length} plan{userPlans.length !== 1 ? "s" : ""}
         </p>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: `1px solid ${C.border}` }}>
+        <div className="flex gap-1 mb-6 border-b border-b-line-subtle">
           {tabs.map(({ key, label, count }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              style={{
-                background: "none", border: "none", cursor: "pointer", padding: "8px 16px", fontSize: 13, fontWeight: 600,
-                color: tab === key ? C.gold : C.textMuted,
-                borderBottom: tab === key ? `2px solid ${C.gold}` : "2px solid transparent",
-                marginBottom: -1,
-              }}
+              className={`bg-transparent border-none cursor-pointer px-4 py-2 text-[13px] font-semibold border-b-2 -mb-px ${
+                tab === key ? "text-gold border-b-gold" : "text-ink-muted border-b-transparent"
+              }`}
             >
-              {label}{count !== undefined && <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4 }}>({count})</span>}
+              {label}{count !== undefined && <span className="text-[11px] font-normal ml-1">({count})</span>}
             </button>
           ))}
         </div>
@@ -109,9 +93,9 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
         {/* Bookmarks tab */}
         {tab === "bookmarks" && (
           bookmarks.length === 0 ? (
-            <EmptyState icon={<Bookmark size={28} color={C.textMuted} />} title="No bookmarks yet" message="While reading, tap the Bookmark button to save your place in any chapter." action={{ href: "/bible/GEN/1", label: "Start reading" }} />
+            <EmptyState icon={<Bookmark size={28} className="text-ink-muted" />} title="No bookmarks yet" message="While reading, tap the Bookmark button to save your place in any chapter." action={{ href: "/bible/GEN/1", label: "Start reading" }} />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {bookmarks.map(bm => <BookmarkCard key={bm.id} bookmark={bm} onDelete={() => deleteBookmark(bm.id)} />)}
             </div>
           )
@@ -120,9 +104,9 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
         {/* Notes tab */}
         {tab === "notes" && (
           notes.length === 0 ? (
-            <EmptyState icon={<StickyNote size={28} color={C.textMuted} />} title="No notes yet" message="While reading, tap Add note to write thoughts on any chapter." action={{ href: "/bible/PSA/119", label: "Start reading" }} />
+            <EmptyState icon={<StickyNote size={28} className="text-ink-muted" />} title="No notes yet" message="While reading, tap Add note to write thoughts on any chapter." action={{ href: "/bible/PSA/119", label: "Start reading" }} />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {notes.map(note => <NoteCard key={note.id} note={note} />)}
             </div>
           )
@@ -145,34 +129,34 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
 function BookmarkCard({ bookmark, onDelete }: { bookmark: BookmarkType; onDelete: () => void }) {
   const [confirming, setConfirming] = useState(false);
   return (
-    <div style={{ background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: `${C.gold}15`, border: `1px solid ${C.goldMuted}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Bookmark size={14} color={C.gold} />
+    <div className="bg-surface-raised border border-line-subtle rounded-[10px] px-4 py-[14px] flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-8 h-8 rounded-lg bg-gold/[8%] border border-gold-muted flex items-center justify-center shrink-0">
+          <Bookmark size={14} className="text-gold" />
         </div>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: "0 0 2px" }}>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink-primary mb-0.5">
             {bookmark.book_name} {bookmark.chapter}
-            {bookmark.verse && <span style={{ color: C.textMuted, fontWeight: 400 }}>:{bookmark.verse}</span>}
+            {bookmark.verse && <span className="text-ink-muted font-normal">:{bookmark.verse}</span>}
           </p>
-          <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>
+          <p className="text-[11px] text-ink-muted m-0">
             {bookmark.translation}
-            {bookmark.label && <span style={{ color: C.textSecondary }}> · "{bookmark.label}"</span>}
-            <span style={{ marginLeft: 8 }}>{new Date(bookmark.created_at).toLocaleDateString()}</span>
+            {bookmark.label && <span className="text-ink-secondary"> · &quot;{bookmark.label}&quot;</span>}
+            <span className="ml-2">{new Date(bookmark.created_at).toLocaleDateString()}</span>
           </p>
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-        <Link href={`/bible/${bookmark.book_id}/${bookmark.chapter}?t=${bookmark.translation}`} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.textSecondary, textDecoration: "none", padding: "6px 10px", background: C.bgOverlay, borderRadius: 6, border: `1px solid ${C.border}` }}>
+      <div className="flex items-center gap-2 shrink-0">
+        <Link href={`/bible/${bookmark.book_id}/${bookmark.chapter}?t=${bookmark.translation}`} className="flex items-center gap-1 text-xs text-ink-secondary no-underline px-[10px] py-1.5 bg-surface-overlay rounded-md border border-line-subtle">
           Open <ChevronRight size={12} />
         </Link>
         {confirming ? (
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={onDelete} style={{ fontSize: 11, padding: "5px 10px", background: "#ef444420", border: "1px solid #ef444440", borderRadius: 6, color: "#f87171", cursor: "pointer" }}>Remove</button>
-            <button onClick={() => setConfirming(false)} style={{ fontSize: 11, padding: "5px 10px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 6, color: C.textMuted, cursor: "pointer" }}>Cancel</button>
+          <div className="flex gap-1.5">
+            <button onClick={onDelete} className="text-[11px] px-[10px] py-[5px] bg-red-500/[8%] border border-red-500/25 rounded-md text-red-400 cursor-pointer">Remove</button>
+            <button onClick={() => setConfirming(false)} className="text-[11px] px-[10px] py-[5px] bg-surface-overlay border border-line-subtle rounded-md text-ink-muted cursor-pointer">Cancel</button>
           </div>
         ) : (
-          <button onClick={() => setConfirming(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 6, display: "flex" }}>
+          <button onClick={() => setConfirming(true)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1.5 flex">
             <Trash2 size={14} />
           </button>
         )}
@@ -184,13 +168,13 @@ function BookmarkCard({ bookmark, onDelete }: { bookmark: BookmarkType; onDelete
 function NoteCard({ note }: { note: Props["notes"][0] }) {
   const preview = note.content.length > 120 ? note.content.slice(0, 120) + "…" : note.content;
   return (
-    <Link href={`/bible/${note.book_id}/${note.chapter}?t=${note.translation}&note=1`} style={{ textDecoration: "none", display: "block", background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: 0 }}>{note.book_name} {note.chapter}</p>
-        <span style={{ fontSize: 11, color: C.textMuted, flexShrink: 0 }}>{new Date(note.updated_at).toLocaleDateString()}</span>
+    <Link href={`/bible/${note.book_id}/${note.chapter}?t=${note.translation}&note=1`} className="no-underline block bg-surface-raised border border-line-subtle rounded-[10px] px-4 py-[14px]">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <p className="text-sm font-semibold text-ink-primary m-0">{note.book_name} {note.chapter}</p>
+        <span className="text-[11px] text-ink-muted shrink-0">{new Date(note.updated_at).toLocaleDateString()}</span>
       </div>
-      <p style={{ fontSize: 13, color: C.textSecondary, margin: 0, lineHeight: 1.6, fontStyle: "italic" }}>"{preview}"</p>
-      <p style={{ fontSize: 11, color: C.textMuted, margin: "8px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
+      <p className="text-[13px] text-ink-secondary m-0 leading-[1.6] italic">&quot;{preview}&quot;</p>
+      <p className="text-[11px] text-ink-muted mt-2 mb-0 flex items-center gap-1">
         {note.translation} · Click to open <ChevronRight size={10} />
       </p>
     </Link>
@@ -199,11 +183,11 @@ function NoteCard({ note }: { note: Props["notes"][0] }) {
 
 function EmptyState({ icon, title, message, action }: { icon: React.ReactNode; title: string; message: string; action: { href: string; label: string } }) {
   return (
-    <div style={{ textAlign: "center", padding: "60px 24px" }}>
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{icon}</div>
-      <h3 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary, margin: "0 0 8px" }}>{title}</h3>
-      <p style={{ fontSize: 13, color: C.textMuted, maxWidth: 320, margin: "0 auto 20px", lineHeight: 1.6 }}>{message}</p>
-      <Link href={action.href} style={{ fontSize: 13, color: C.gold, textDecoration: "none", padding: "8px 16px", border: `1px solid ${C.goldMuted}`, borderRadius: 8 }}>
+    <div className="text-center py-[60px] px-6">
+      <div className="flex justify-center mb-4">{icon}</div>
+      <h3 className="text-base font-semibold text-ink-primary mb-2">{title}</h3>
+      <p className="text-[13px] text-ink-muted max-w-[320px] mx-auto mb-5 leading-[1.6]">{message}</p>
+      <Link href={action.href} className="text-[13px] text-gold no-underline px-4 py-2 border border-gold-muted rounded-lg">
         {action.label} →
       </Link>
     </div>

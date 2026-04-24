@@ -17,7 +17,7 @@ module.exports = {
           raised: "#18181c",
           overlay: "#222228",
         },
-        border: {
+        line: {
           subtle: "#2a2a32",
           DEFAULT: "#3a3a46",
         },
@@ -26,7 +26,7 @@ module.exports = {
           muted: "#8a6e2f",
           bright: "#e8c56a",
         },
-        text: {
+        ink: {
           primary: "#f0ede6",
           secondary: "#9d9a95",
           muted: "#5a5855",

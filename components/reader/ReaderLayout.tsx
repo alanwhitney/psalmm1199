@@ -20,19 +20,6 @@ interface ReaderLayoutProps {
 }
 
 const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV"];
-
-const C = {
-  bg: "#0e0e10",
-  bgRaised: "#18181c",
-  bgOverlay: "#222228",
-  border: "#2a2a32",
-  gold: "#c9a84c",
-  goldMuted: "#8a6e2f",
-  textPrimary: "#f0ede6",
-  textSecondary: "#9d9a95",
-  textMuted: "#5a5855",
-};
-
 const DESKTOP_BREAKPOINT = 1024;
 
 export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse }: ReaderLayoutProps) {
@@ -43,7 +30,6 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Detect desktop vs mobile
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
     check();
@@ -68,54 +54,39 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   const nextChapter = chapter < book.chapters ? chapter + 1 : null;
 
   const sidebar = (
-    <aside style={{
-      width: 272,
-      minWidth: 272,
-      background: C.bgRaised,
-      borderRight: `1px solid ${C.border}`,
-      display: "flex",
-      flexDirection: "column",
-      height: "100vh",
-      // On mobile: fixed overlay; on desktop: part of the flex layout
-      position: isDesktop ? "relative" : "fixed",
-      left: 0,
-      top: 0,
-      zIndex: isDesktop ? 1 : 40,
-    }}>
+    <aside className={`w-[272px] min-w-[272px] bg-surface-raised border-r border-r-line-subtle flex flex-col h-screen top-0 left-0 ${isDesktop ? "relative z-[1]" : "fixed z-40"}`}>
       {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderBottom: `1px solid ${C.border}` }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-          <BookOpen size={18} color={C.gold} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, letterSpacing: "0.03em" }}>Psalm 119:9</span>
+      <div className="flex items-center justify-between p-4 border-b border-b-line-subtle">
+        <Link href="/" className="flex items-center gap-2 no-underline">
+          <BookOpen size={18} className="text-gold" />
+          <span className="text-[13px] font-semibold text-ink-primary tracking-[0.03em]">Psalm 119:9</span>
         </Link>
-        {/* Only show close button on mobile */}
         {!isDesktop && (
-          <button onClick={() => setMobileOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
+          <button onClick={() => setMobileOpen(false)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1">
             <X size={16} />
           </button>
         )}
       </div>
 
       {/* Translation */}
-      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
-        <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: C.textMuted, marginBottom: 8, fontWeight: 600 }}>Translation</p>
-        <div style={{ display: "flex", gap: 8 }}>
+      <div className="px-4 py-3 border-b border-b-line-subtle">
+        <p className="text-[10px] uppercase tracking-[0.1em] text-ink-muted mb-2 font-semibold">Translation</p>
+        <div className="flex gap-2">
           {TRANSLATIONS.map((t) => (
-            <button key={t} onClick={() => goTo(book.id, chapter, t)} style={{
-              flex: 1, padding: "6px 0", fontSize: 11, fontWeight: 700, borderRadius: 6, cursor: "pointer",
-              border: t !== translation ? `1px solid ${C.border}` : "none",
-              background: t === translation ? C.gold : C.bgOverlay,
-              color: t === translation ? C.bg : C.textSecondary,
-            }}>{t}</button>
+            <button key={t} onClick={() => goTo(book.id, chapter, t)} className={`flex-1 py-1.5 text-[11px] font-bold rounded-md cursor-pointer ${
+              t === translation
+                ? "bg-gold text-surface border-none"
+                : "bg-surface-overlay text-ink-secondary border border-line-subtle"
+            }`}>{t}</button>
           ))}
         </div>
       </div>
 
       {/* Book list */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+      <div className="flex-1 overflow-y-auto py-2">
         {[{ label: "Old Testament", books: OT_BOOKS }, { label: "New Testament", books: NT_BOOKS }].map(({ label, books }) => (
           <div key={label}>
-            <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: C.textMuted, fontWeight: 600, padding: "16px 16px 4px", margin: 0 }}>{label}</p>
+            <p className="text-[10px] uppercase tracking-[0.1em] text-ink-muted font-semibold px-4 pt-4 pb-1 m-0">{label}</p>
             {books.map((b) => (
               <BookItem key={b.id} b={b} active={b.id === book.id} activeChapter={b.id === book.id ? chapter : null} onSelect={(ch) => goTo(b.id, ch)} />
             ))}
@@ -125,15 +96,15 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
 
       {/* Navigation links */}
       {user && (
-        <div style={{ borderTop: `1px solid ${C.border}`, padding: "8px 12px" }}>
-          <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: C.textMuted, fontWeight: 600, padding: "4px 4px 6px", margin: 0 }}>My Reading</p>
+        <div className="border-t border-t-line-subtle px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.1em] text-ink-muted font-semibold px-1 pt-1 pb-1.5 m-0">My Reading</p>
           {[
             { href: "/bookmarks", icon: <Bookmark size={13} />, label: "Bookmarks & Notes" },
             { href: "/bookmarks?tab=plan", icon: <CalendarDays size={13} />, label: "Reading Plan" },
             { href: "/about", icon: <BookOpen size={13} />, label: "About" },
           ].map(({ href, icon, label }) => (
-            <Link key={href} href={href} onClick={() => setMobileOpen(false)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 4px", fontSize: 12, color: C.textSecondary, textDecoration: "none", borderRadius: 6 }}>
-              <span style={{ color: C.gold }}>{icon}</span>
+            <Link key={href} href={href} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-1 py-1.5 text-xs text-ink-secondary no-underline rounded-md">
+              <span className="text-gold">{icon}</span>
               {label}
             </Link>
           ))}
@@ -141,16 +112,16 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
       )}
 
       {/* User */}
-      <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px" }}>
+      <div className="border-t border-t-line-subtle px-4 py-3">
         {user ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ fontSize: 11, color: C.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180, margin: 0 }}>{user.email}</p>
-            <button onClick={handleSignOut} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4, flexShrink: 0 }}>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-ink-muted overflow-hidden text-ellipsis whitespace-nowrap max-w-[180px] m-0">{user.email}</p>
+            <button onClick={handleSignOut} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 shrink-0">
               <LogOut size={16} />
             </button>
           </div>
         ) : (
-          <Link href="/auth/login" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.textSecondary, textDecoration: "none" }}>
+          <Link href="/auth/login" className="flex items-center gap-2 text-[13px] text-ink-secondary no-underline">
             <LogIn size={16} /> Sign in to save progress
           </Link>
         )}
@@ -159,49 +130,48 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   );
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: C.bg, color: C.textPrimary }}>
+    <div className="flex h-screen overflow-hidden bg-surface text-ink-primary">
 
       {/* Mobile backdrop */}
       {mobileOpen && !isDesktop && (
-        <div onClick={() => setMobileOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 30 }} />
+        <div onClick={() => setMobileOpen(false)} className="fixed inset-0 bg-black/60 z-30" />
       )}
 
-      {/* Sidebar — always in DOM on desktop, conditional on mobile */}
+      {/* Sidebar */}
       {sidebarVisible && sidebar}
 
       {/* Main */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: C.bgRaised, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* Hide menu button on desktop since sidebar is always visible */}
+        <header className="flex items-center justify-between px-4 py-[10px] border-b border-b-line-subtle bg-surface-raised shrink-0">
+          <div className="flex items-center gap-3">
             {!isDesktop && (
-              <button onClick={() => setMobileOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
+              <button onClick={() => setMobileOpen(true)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1">
                 <Menu size={18} />
               </button>
             )}
-            <h1 style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: 0 }}>
-              {book.name} <span style={{ color: C.textMuted, fontWeight: 400 }}>{chapter}</span>
+            <h1 className="text-sm font-semibold text-ink-primary m-0">
+              {book.name} <span className="text-ink-muted font-normal">{chapter}</span>
             </h1>
-            <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: C.bgOverlay, color: C.gold, border: `1px solid ${C.goldMuted}`, fontWeight: 700 }}>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-surface-overlay text-gold border border-gold-muted font-bold">
               {translation}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={() => setSearchOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 6, display: "flex", alignItems: "center" }}>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setSearchOpen(true)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1.5 flex items-center">
               <Search size={16} />
             </button>
-            <div style={{ width: 1, height: 16, background: C.border }} />
+            <div className="w-px h-4 bg-line-subtle" />
             {prevChapter
-              ? <Link href={`/bible/${book.id}/${prevChapter}?t=${translation}`} style={{ padding: 6, color: C.textMuted, display: "flex", textDecoration: "none" }}><ChevronLeft size={16} /></Link>
-              : <span style={{ padding: 6, opacity: 0.2, display: "flex" }}><ChevronLeft size={16} /></span>}
-            <span style={{ fontSize: 11, color: C.textMuted, padding: "0 4px" }}>{chapter} / {book.chapters}</span>
+              ? <Link href={`/bible/${book.id}/${prevChapter}?t=${translation}`} className="p-1.5 text-ink-muted flex no-underline"><ChevronLeft size={16} /></Link>
+              : <span className="p-1.5 opacity-20 flex"><ChevronLeft size={16} /></span>}
+            <span className="text-[11px] text-ink-muted px-1">{chapter} / {book.chapters}</span>
             {nextChapter
-              ? <Link href={`/bible/${book.id}/${nextChapter}?t=${translation}`} style={{ padding: 6, color: C.textMuted, display: "flex", textDecoration: "none" }}><ChevronRight size={16} /></Link>
-              : <span style={{ padding: 6, opacity: 0.2, display: "flex" }}><ChevronRight size={16} /></span>}
+              ? <Link href={`/bible/${book.id}/${nextChapter}?t=${translation}`} className="p-1.5 text-ink-muted flex no-underline"><ChevronRight size={16} /></Link>
+              : <span className="p-1.5 opacity-20 flex"><ChevronRight size={16} /></span>}
           </div>
         </header>
-        <main style={{ flex: 1, overflowY: "auto" }}>{children}</main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
 
       {/* Search panel */}
@@ -227,19 +197,17 @@ function BookItem({ b, active, activeChapter, onSelect }: {
     <div>
       <button
         onClick={() => setExpanded(e => !e)}
-        style={{ width: "100%", textAlign: "left", padding: "6px 16px", background: "none", border: "none", cursor: "pointer", color: active ? C.gold : C.textSecondary, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}
+        className={`w-full text-left px-4 py-1.5 bg-transparent border-none cursor-pointer text-[13px] flex items-center justify-between ${active ? "text-gold" : "text-ink-secondary"}`}
       >
         <span>{b.name}</span>
         <ChevronRight size={12} style={{ transform: expanded ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }} />
       </button>
       {expanded && (
-        <div style={{ padding: "4px 16px 8px", display: "flex", flexWrap: "wrap", gap: 4 }}>
+        <div className="px-4 pb-2 pt-1 flex flex-wrap gap-1">
           {Array.from({ length: b.chapters }, (_, i) => i + 1).map((ch) => (
-            <button key={ch} onClick={() => onSelect(ch)} style={{
-              width: 28, height: 28, fontSize: 11, borderRadius: 4, border: "none", cursor: "pointer", fontWeight: 600,
-              background: activeChapter === ch ? C.gold : C.bgOverlay,
-              color: activeChapter === ch ? C.bg : C.textSecondary,
-            }}>{ch}</button>
+            <button key={ch} onClick={() => onSelect(ch)} className={`w-7 h-7 text-[11px] rounded cursor-pointer font-semibold border-none ${
+              activeChapter === ch ? "bg-gold text-surface" : "bg-surface-overlay text-ink-secondary"
+            }`}>{ch}</button>
           ))}
         </div>
       )}

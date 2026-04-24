@@ -3,18 +3,6 @@ import { BookOpen, ArrowLeft } from "lucide-react";
 import { cookies } from "next/headers";
 import { lastPositionUrl } from "@/lib/last-position";
 
-const C = {
-  bg: "#0e0e10",
-  bgRaised: "#18181c",
-  bgOverlay: "#222228",
-  border: "#2a2a32",
-  gold: "#c9a84c",
-  goldMuted: "#8a6e2f",
-  textPrimary: "#f0ede6",
-  textSecondary: "#9d9a95",
-  textMuted: "#5a5855",
-};
-
 export const metadata = {
   title: "About — Psalm 119:9",
 };
@@ -23,46 +11,46 @@ export default async function AboutPage() {
   const cookieStore = await cookies();
   const backHref = lastPositionUrl(cookieStore.get("last_position")?.value);
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.textPrimary }}>
+    <div className="min-h-screen bg-surface text-ink-primary">
       {/* Header */}
-      <header style={{ background: C.bgRaised, borderBottom: `1px solid ${C.border}`, padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href={backHref} style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", color: C.textMuted, fontSize: 13 }}>
+      <header className="bg-surface-raised border-b border-b-line-subtle px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href={backHref} className="flex items-center gap-1.5 no-underline text-ink-muted text-[13px]">
             <ArrowLeft size={15} /> Back to reading
           </Link>
-          <div style={{ width: 1, height: 16, background: C.border }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <BookOpen size={16} color={C.gold} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>Psalm 119:9</span>
+          <div className="w-px h-4 bg-line-subtle" />
+          <div className="flex items-center gap-2">
+            <BookOpen size={16} className="text-gold" />
+            <span className="text-[13px] font-semibold text-ink-primary">Psalm 119:9</span>
           </div>
         </div>
       </header>
 
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "60px 24px" }}>
+      <div className="max-w-[640px] mx-auto py-[60px] px-6">
         {/* Icon */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 16, background: C.bgRaised, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <BookOpen size={28} color={C.gold} />
+        <div className="flex justify-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-surface-raised border border-line-subtle flex items-center justify-center">
+            <BookOpen size={28} className="text-gold" />
           </div>
         </div>
 
         {/* Title */}
-        <h1 style={{ fontSize: 28, fontWeight: 300, color: C.textPrimary, textAlign: "center", marginBottom: 8, fontFamily: "var(--font-reading, Georgia, serif)" }}>
+        <h1 className="text-[28px] font-light text-ink-primary text-center mb-2 font-reading">
           Psalm 119:9
         </h1>
-        <p style={{ fontSize: 12, color: C.textMuted, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 12 }}>
+        <p className="text-xs text-ink-muted text-center uppercase tracking-[0.12em] font-semibold mb-3">
           Bible Reader
         </p>
 
         {/* Gold divider */}
-        <div style={{ height: 1, width: 80, margin: "0 auto 40px", background: `linear-gradient(to right, transparent, ${C.goldMuted}, transparent)` }} />
+        <div className="h-px w-20 mx-auto mb-10 bg-gradient-to-r from-transparent via-gold-muted to-transparent" />
 
         {/* Name verse */}
-        <div style={{ background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 32, borderLeft: `3px solid ${C.gold}` }}>
-          <p style={{ fontSize: 15, color: C.textPrimary, fontFamily: "var(--font-reading, Georgia, serif)", lineHeight: 1.8, margin: "0 0 8px", fontStyle: "italic" }}>
+        <div className="bg-surface-raised border border-line-subtle border-l-[3px] border-l-gold rounded-xl px-6 py-5 mb-8">
+          <p className="text-[15px] text-ink-primary font-reading leading-[1.8] mb-2 italic">
             "Wherewithal shall a young man cleanse his way? By taking heed thereto according to thy word."
           </p>
-          <p style={{ fontSize: 12, color: C.gold, fontWeight: 600, margin: 0 }}>— Psalm 119:9 (KJV)</p>
+          <p className="text-xs text-gold font-semibold m-0">— Psalm 119:9 (KJV)</p>
         </div>
 
         {/* About sections */}
@@ -88,30 +76,30 @@ export default async function AboutPage() {
             body: "This is a simple tool created by Alan Whitney in South West East Corinth in Central Maine. It's free, it's simple. Enjoy."
           },
         ].map(({ heading, body }) => (
-          <div key={heading} style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: C.gold, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+          <div key={heading} className="mb-7">
+            <h2 className="text-[13px] font-bold text-gold uppercase tracking-[0.08em] mb-2">
               {heading}
             </h2>
-            <p style={{ fontSize: 14, color: C.textSecondary, lineHeight: 1.8, margin: 0 }}>
+            <p className="text-sm text-ink-secondary leading-[1.8] m-0">
               {body}
             </p>
           </div>
         ))}
 
         {/* Divider */}
-        <div style={{ height: 1, background: C.border, margin: "32px 0" }} />
+        <div className="h-px bg-line-subtle my-8" />
 
         {/* CTA */}
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href={backHref} style={{ padding: "10px 24px", background: C.gold, color: C.bg, fontWeight: 700, fontSize: 13, borderRadius: 8, textDecoration: "none" }}>
+        <div className="flex gap-3 justify-center flex-wrap">
+          <Link href={backHref} className="px-6 py-[10px] bg-gold text-surface font-bold text-[13px] rounded-lg no-underline">
             Start Reading
           </Link>
-          <Link href="/auth/signup" style={{ padding: "10px 24px", background: C.bgRaised, border: `1px solid ${C.border}`, color: C.textPrimary, fontSize: 13, borderRadius: 8, textDecoration: "none" }}>
+          <Link href="/auth/signup" className="px-6 py-[10px] bg-surface-raised border border-line-subtle text-ink-primary text-[13px] rounded-lg no-underline">
             Create Account
           </Link>
         </div>
 
-        <p style={{ textAlign: "center", fontSize: 11, color: C.textMuted, marginTop: 48 }}>
+        <p className="text-center text-[11px] text-ink-muted mt-12">
           psalm1199.com
         </p>
       </div>

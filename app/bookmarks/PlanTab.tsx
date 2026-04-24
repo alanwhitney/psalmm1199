@@ -7,19 +7,6 @@ import { READING_PLANS, PLAN_BY_ID } from "@/lib/reading-plans";
 import { createClient } from "@/lib/supabase/client";
 import { BOOK_BY_ID } from "@/lib/books";
 
-const C = {
-  bg: "#0e0e10",
-  bgRaised: "#18181c",
-  bgOverlay: "#222228",
-  border: "#2a2a32",
-  borderDefault: "#3a3a46",
-  gold: "#c9a84c",
-  goldMuted: "#8a6e2f",
-  textPrimary: "#f0ede6",
-  textSecondary: "#9d9a95",
-  textMuted: "#5a5855",
-};
-
 interface UserPlan {
   id: string;
   plan_id: string;
@@ -53,12 +40,10 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
   const activePlan = userPlans.find(p => p.plan_id === activePlanId);
   const planData = activePlanId ? PLAN_BY_ID[activePlanId] : null;
 
-  // How many days completed for active plan
   const completedDays = planData
     ? Array.from(completions).filter(k => k.startsWith(`${activePlanId}:`)).length
     : 0;
 
-  // Current day = next uncompleted day
   const currentDay = planData
     ? (planData.readings.find(r => !completions.has(`${activePlanId}:${r.day}`))?.day ?? planData.totalDays)
     : 1;
@@ -119,26 +104,26 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
   return (
     <div>
       {/* Plan switcher + add button */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
         {userPlans.map(up => {
           const plan = PLAN_BY_ID[up.plan_id];
           if (!plan) return null;
+          const isActive = activePlanId === up.plan_id;
           return (
             <button
               key={up.plan_id}
               onClick={() => setActivePlanId(up.plan_id)}
-              style={{
-                padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: `1px solid ${activePlanId === up.plan_id ? C.gold : C.border}`,
-                background: activePlanId === up.plan_id ? `${C.gold}18` : C.bgRaised,
-                color: activePlanId === up.plan_id ? C.gold : C.textSecondary,
-              }}
+              className={`px-[14px] py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
+                isActive
+                  ? "border border-gold bg-gold/[9%] text-gold"
+                  : "border border-line-subtle bg-surface-raised text-ink-secondary"
+              }`}
             >{plan.name}</button>
           );
         })}
         <button
           onClick={() => setShowPicker(true)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${C.border}`, background: C.bgRaised, color: C.textMuted }}
+          className="flex items-center gap-1.5 px-[14px] py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-line-subtle bg-surface-raised text-ink-muted"
         >
           <Plus size={13} /> Add plan
         </button>
@@ -146,11 +131,11 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
 
       {/* Plan picker modal */}
       {showPicker && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div style={{ background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, maxWidth: 480, width: "100%" }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary, margin: "0 0 16px" }}>Choose a Reading Plan</h3>
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6">
+          <div className="bg-surface-raised border border-line-subtle rounded-2xl p-6 max-w-[480px] w-full">
+            <h3 className="text-base font-semibold text-ink-primary mb-4">Choose a Reading Plan</h3>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+            <div className="flex flex-col gap-2 mb-5">
               {READING_PLANS.map(plan => {
                 const enrolled = enrolledPlanIds.has(plan.id);
                 const isSelected = selectedPlan === plan.id;
@@ -158,46 +143,44 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
                   <button
                     key={plan.id}
                     onClick={() => !enrolled && setSelectedPlan(plan.id)}
-                    style={{
-                      textAlign: "left", padding: "12px 14px", borderRadius: 10, cursor: enrolled ? "default" : "pointer",
-                      border: `1px solid ${isSelected ? C.gold : C.border}`,
-                      background: isSelected ? `${C.gold}12` : C.bgOverlay,
-                      opacity: enrolled ? 0.5 : 1,
-                    }}
+                    className={`text-left px-[14px] py-3 rounded-[10px] border ${
+                      isSelected ? "border-gold bg-gold/[7%]" : "border-line-subtle bg-surface-overlay"
+                    } ${enrolled ? "opacity-50 cursor-default" : "cursor-pointer"}`}
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, margin: 0 }}>{plan.name}</p>
-                      <span style={{ fontSize: 11, color: C.textMuted }}>{plan.totalDays} days</span>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[13px] font-semibold text-ink-primary m-0">{plan.name}</p>
+                      <span className="text-[11px] text-ink-muted">{plan.totalDays} days</span>
                     </div>
-                    <p style={{ fontSize: 12, color: C.textSecondary, margin: "4px 0 0" }}>{plan.description}</p>
-                    {enrolled && <p style={{ fontSize: 11, color: C.gold, margin: "4px 0 0" }}>Already enrolled</p>}
+                    <p className="text-xs text-ink-secondary mt-1 mb-0">{plan.description}</p>
+                    {enrolled && <p className="text-[11px] text-gold mt-1 mb-0">Already enrolled</p>}
                   </button>
                 );
               })}
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, color: C.textSecondary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Translation</label>
-              <div style={{ display: "flex", gap: 8 }}>
+            <div className="mb-4">
+              <label className="text-[11px] text-ink-secondary font-semibold uppercase tracking-[0.05em] block mb-1.5">Translation</label>
+              <div className="flex gap-2">
                 {["KJV", "NKJV", "NIV"].map(t => (
-                  <button key={t} onClick={() => setSelectedTranslation(t)} style={{
-                    flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 700, borderRadius: 6, cursor: "pointer",
-                    border: selectedTranslation !== t ? `1px solid ${C.border}` : "none",
-                    background: selectedTranslation === t ? C.gold : C.bgOverlay,
-                    color: selectedTranslation === t ? C.bg : C.textSecondary,
-                  }}>{t}</button>
+                  <button key={t} onClick={() => setSelectedTranslation(t)} className={`flex-1 py-[7px] text-xs font-bold rounded-md cursor-pointer ${
+                    selectedTranslation === t
+                      ? "bg-gold text-surface border-none"
+                      : "bg-surface-overlay text-ink-secondary border border-line-subtle"
+                  }`}>{t}</button>
                 ))}
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => { setShowPicker(false); setSelectedPlan(null); }} style={{ flex: 1, padding: "10px 0", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 8, color: C.textMuted, fontSize: 13, cursor: "pointer" }}>
+            <div className="flex gap-2">
+              <button onClick={() => { setShowPicker(false); setSelectedPlan(null); }} className="flex-1 py-2.5 bg-surface-overlay border border-line-subtle rounded-lg text-ink-muted text-[13px] cursor-pointer">
                 Cancel
               </button>
               <button
                 onClick={startPlan}
                 disabled={!selectedPlan}
-                style={{ flex: 1, padding: "10px 0", background: selectedPlan ? C.gold : C.bgOverlay, border: "none", borderRadius: 8, color: selectedPlan ? C.bg : C.textMuted, fontSize: 13, fontWeight: 700, cursor: selectedPlan ? "pointer" : "not-allowed" }}
+                className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold border-none ${
+                  selectedPlan ? "bg-gold text-surface cursor-pointer" : "bg-surface-overlay text-ink-muted cursor-not-allowed"
+                }`}
               >
                 Start Plan
               </button>
@@ -208,13 +191,13 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
 
       {/* No plans enrolled */}
       {userPlans.length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 24px" }}>
-          <CalendarDays size={32} color={C.textMuted} style={{ margin: "0 auto 16px" }} />
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary, margin: "0 0 8px" }}>No reading plan yet</h3>
-          <p style={{ fontSize: 13, color: C.textMuted, margin: "0 auto 20px", maxWidth: 300, lineHeight: 1.6 }}>
+        <div className="text-center py-[60px] px-6">
+          <CalendarDays size={32} className="text-ink-muted mx-auto mb-4" />
+          <h3 className="text-base font-semibold text-ink-primary mb-2">No reading plan yet</h3>
+          <p className="text-[13px] text-ink-muted mx-auto mb-5 max-w-[300px] leading-[1.6]">
             Start a reading plan to work through the Bible systematically.
           </p>
-          <button onClick={() => setShowPicker(true)} style={{ fontSize: 13, color: C.gold, padding: "8px 16px", border: `1px solid ${C.goldMuted}`, borderRadius: 8, background: "none", cursor: "pointer" }}>
+          <button onClick={() => setShowPicker(true)} className="text-[13px] text-gold px-4 py-2 border border-gold-muted rounded-lg bg-transparent cursor-pointer">
             Choose a plan →
           </button>
         </div>
@@ -224,81 +207,94 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
       {planData && activePlan && (
         <div>
           {/* Progress bar */}
-          <div style={{ background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 20px", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div className="bg-surface-raised border border-line-subtle rounded-xl px-5 py-4 mb-5">
+            <div className="flex items-center justify-between mb-[10px]">
               <div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: "0 0 2px" }}>{planData.name}</p>
-                <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
+                <p className="text-sm font-semibold text-ink-primary mb-0.5">{planData.name}</p>
+                <p className="text-xs text-ink-muted m-0">
                   Day {currentDay} of {planData.totalDays} · {completedDays} days completed
                 </p>
               </div>
-              <button onClick={() => removePlan(activePlanId!)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4 }}>
+              <button onClick={() => removePlan(activePlanId!)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1">
                 <Trash2 size={14} />
               </button>
             </div>
-            {/* Progress bar */}
-            <div style={{ height: 4, background: C.bgOverlay, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", background: C.gold, borderRadius: 2, width: `${Math.round((completedDays / planData.totalDays) * 100)}%`, transition: "width 0.3s" }} />
+            <div className="h-1 bg-surface-overlay rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-gold rounded-sm transition-[width] duration-300"
+                style={{ width: `${Math.round((completedDays / planData.totalDays) * 100)}%` }}
+              />
             </div>
-            <p style={{ fontSize: 11, color: C.textMuted, margin: "6px 0 0", textAlign: "right" }}>
+            <p className="text-[11px] text-ink-muted mt-1.5 mb-0 text-right">
               {Math.round((completedDays / planData.totalDays) * 100)}% complete
             </p>
           </div>
 
           {/* Today's reading */}
           {todayReading && (
-            <div style={{ marginBottom: 24 }}>
-              <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: C.textMuted, fontWeight: 600, marginBottom: 10 }}>
-                Day {currentDay} — Today's Reading
+            <div className="mb-6">
+              <p className="text-[11px] uppercase tracking-[0.08em] text-ink-muted font-semibold mb-[10px]">
+                Day {currentDay} — Today&apos;s Reading
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="flex flex-col gap-1.5">
                 {todayReading.readings.map((r, i) => {
                   const book = BOOK_BY_ID[r.bookId];
                   return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <BookOpen size={14} color={C.gold} />
-                        <span style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>{book?.name} {r.chapter}</span>
+                    <div key={i} className="flex items-center justify-between bg-surface-raised border border-line-subtle rounded-[10px] px-[14px] py-3">
+                      <div className="flex items-center gap-[10px]">
+                        <BookOpen size={14} className="text-gold" />
+                        <span className="text-sm font-semibold text-ink-primary">{book?.name} {r.chapter}</span>
                       </div>
-                      <Link href={`/bible/${r.bookId}/${r.chapter}?t=${activePlan.translation}`} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.textSecondary, textDecoration: "none", padding: "5px 10px", background: C.bgOverlay, borderRadius: 6, border: `1px solid ${C.border}` }}>
+                      <Link href={`/bible/${r.bookId}/${r.chapter}?t=${activePlan.translation}`} className="flex items-center gap-1 text-xs text-ink-secondary no-underline px-[10px] py-[5px] bg-surface-overlay rounded-md border border-line-subtle">
                         Read <ChevronRight size={12} />
                       </Link>
                     </div>
                   );
                 })}
               </div>
-              <button
-                onClick={() => toggleDay(activePlanId!, currentDay)}
-                style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: `1px solid ${completions.has(`${activePlanId}:${currentDay}`) ? C.goldMuted : C.border}`, background: completions.has(`${activePlanId}:${currentDay}`) ? `${C.gold}18` : C.bgRaised, color: completions.has(`${activePlanId}:${currentDay}`) ? C.gold : C.textSecondary }}
-              >
-                {completions.has(`${activePlanId}:${currentDay}`)
-                  ? <><CheckCircle size={15} /> Day {currentDay} complete</>
-                  : <><Circle size={15} /> Mark day {currentDay} as complete</>}
-              </button>
+              {(() => {
+                const isDayComplete = completions.has(`${activePlanId}:${currentDay}`);
+                return (
+                  <button
+                    onClick={() => toggleDay(activePlanId!, currentDay)}
+                    className={`mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer ${
+                      isDayComplete
+                        ? "border border-gold-muted bg-gold/[9%] text-gold"
+                        : "border border-line-subtle bg-surface-raised text-ink-secondary"
+                    }`}
+                  >
+                    {isDayComplete
+                      ? <><CheckCircle size={15} /> Day {currentDay} complete</>
+                      : <><Circle size={15} /> Mark day {currentDay} as complete</>}
+                  </button>
+                );
+              })()}
             </div>
           )}
 
           {/* Recent days */}
           <div>
-            <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: C.textMuted, fontWeight: 600, marginBottom: 10 }}>
+            <p className="text-[11px] uppercase tracking-[0.08em] text-ink-muted font-semibold mb-[10px]">
               Recent Days
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div className="flex flex-col gap-1">
               {planData.readings.slice(Math.max(0, currentDay - 4), currentDay + 3).map(r => {
                 const isComplete = completions.has(`${activePlanId}:${r.day}`);
                 const isCurrent = r.day === currentDay;
                 return (
                   <div
                     key={r.day}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: isCurrent ? `${C.gold}08` : "transparent", border: `1px solid ${isCurrent ? C.goldMuted : "transparent"}` }}
+                    className={`flex items-center gap-[10px] px-3 py-2 rounded-lg border ${
+                      isCurrent ? "bg-gold/[3%] border-gold-muted" : "bg-transparent border-transparent"
+                    }`}
                   >
-                    <button onClick={() => toggleDay(activePlanId!, r.day)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: isComplete ? C.gold : C.textMuted, flexShrink: 0 }}>
+                    <button onClick={() => toggleDay(activePlanId!, r.day)} className={`bg-transparent border-none cursor-pointer p-0 shrink-0 ${isComplete ? "text-gold" : "text-ink-muted"}`}>
                       {isComplete ? <CheckCircle size={15} /> : <Circle size={15} />}
                     </button>
-                    <span style={{ fontSize: 12, color: isCurrent ? C.textPrimary : C.textMuted, fontWeight: isCurrent ? 600 : 400, minWidth: 48 }}>
+                    <span className={`text-xs min-w-[48px] ${isCurrent ? "text-ink-primary font-semibold" : "text-ink-muted font-normal"}`}>
                       Day {r.day}
                     </span>
-                    <span style={{ fontSize: 12, color: C.textSecondary, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span className="text-xs text-ink-secondary flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                       {r.readings.map(rd => `${BOOK_BY_ID[rd.bookId]?.name} ${rd.chapter}`).join(", ")}
                     </span>
                   </div>

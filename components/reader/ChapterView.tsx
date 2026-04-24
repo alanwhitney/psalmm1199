@@ -6,20 +6,6 @@ import { Book, Translation, Chapter, Bookmark as BookmarkType, Note } from "@/ty
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-const C = {
-  bg: "#0e0e10",
-  bgRaised: "#18181c",
-  bgOverlay: "#222228",
-  border: "#2a2a32",
-  borderDefault: "#3a3a46",
-  gold: "#c9a84c",
-  goldMuted: "#8a6e2f",
-  goldBright: "#e8c56a",
-  textPrimary: "#f0ede6",
-  textSecondary: "#9d9a95",
-  textMuted: "#5a5855",
-};
-
 interface ChapterViewProps {
   book: Book;
   chapter: number;
@@ -42,12 +28,10 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
 
-  // Notify parent of verses, and sync external highlight from search
   useEffect(() => {
     if (chapterData) onVersesReady?.(chapterData.verses);
   }, [chapterData]);
 
-  // Remember last position in a cookie
   useEffect(() => {
     document.cookie = `last_position=${book.id}:${chapter}:${translation};path=/;max-age=${60 * 60 * 24 * 365}`;
   }, [book.id, chapter, translation]);
@@ -55,12 +39,12 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   useEffect(() => {
     if (externalHighlight != null) {
       setSelectedVerse(externalHighlight);
-      // Scroll to the verse
       setTimeout(() => {
         document.getElementById(`v${externalHighlight}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 100);
     }
   }, [externalHighlight]);
+
   const [copied, setCopied] = useState(false);
 
   function selectVerse(num: number) {
@@ -91,6 +75,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       await copyVerse(num);
     }
   }
+
   const [noteContent, setNoteContent] = useState(initialNote?.content ?? "");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
@@ -128,7 +113,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const saveNote = useCallback(async (content?: string) => {
     if (!user) return;
     const textToSave = content ?? noteContentRef.current;
-    if (!textToSave.trim() && !noteRef.current) return; // don't save empty new notes
+    if (!textToSave.trim() && !noteRef.current) return;
     setNoteSaving(true);
     if (noteRef.current) {
       const { data } = await supabase.from("notes").update({ content: textToSave }).eq("id", noteRef.current.id).select().single();
@@ -147,7 +132,6 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   function handleNoteChange(value: string) {
     setNoteContent(value);
-    // Auto-save after 1.5 seconds of no typing
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => saveNote(value), 1500);
   }
@@ -162,15 +146,15 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   if (!chapterData) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 16, padding: "80px 24px", color: C.textSecondary }}>
-        <AlertCircle size={32} color={C.textMuted} />
-        <div style={{ textAlign: "center" }}>
-          <p style={{ fontWeight: 600, marginBottom: 4, color: C.textPrimary }}>Couldn't load this chapter</p>
-          <p style={{ fontSize: 13, color: C.textMuted }}>
-            Check that your <code style={{ color: C.gold }}>BIBLE_API_KEY</code> is set in <code style={{ color: C.gold }}>.env.local</code>
+      <div className="flex flex-col items-center justify-center h-full gap-4 py-20 px-6 text-ink-secondary">
+        <AlertCircle size={32} className="text-ink-muted" />
+        <div className="text-center">
+          <p className="font-semibold mb-1 text-ink-primary">Couldn&apos;t load this chapter</p>
+          <p className="text-[13px] text-ink-muted">
+            Check that your <code className="text-gold">BIBLE_API_KEY</code> is set in <code className="text-gold">.env.local</code>
           </p>
         </div>
-        <a href="https://scripture.api.bible" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.gold }}>
+        <a href="https://scripture.api.bible" target="_blank" rel="noopener noreferrer" className="text-xs text-gold">
           Get a free API key →
         </a>
       </div>
@@ -181,32 +165,30 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const nextChapter = chapter < book.chapters ? chapter + 1 : null;
 
   return (
-    <div style={{ display: "flex", height: "100%" }}>
+    <div className="flex h-full">
       {/* Reading pane */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 32px" }}>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[680px] mx-auto py-12 px-8">
 
           {/* Chapter heading */}
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 300, marginBottom: 4, color: C.textPrimary, fontFamily: "var(--font-reading, Georgia, serif)" }}>
+          <div className="mb-8">
+            <h2 className="text-[22px] font-light mb-1 text-ink-primary font-reading">
               {book.name}
             </h2>
-            <p style={{ fontSize: 12, color: C.textMuted }}>Chapter {chapter} · {translation}</p>
-            <div style={{ height: 1, marginTop: 16, background: `linear-gradient(to right, transparent, ${C.goldMuted}, transparent)` }} />
+            <p className="text-xs text-ink-muted">Chapter {chapter} · {translation}</p>
+            <div className="h-px mt-4 bg-gradient-to-r from-transparent via-gold-muted to-transparent" />
           </div>
 
           {/* Action bar */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, flexWrap: "wrap" }}>
+          <div className="flex items-center gap-[10px] mb-8 flex-wrap">
             {/* Bookmark button */}
             <button
               onClick={toggleBookmark}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "6px 12px",
-                borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: `1px solid ${bookmark ? C.goldMuted : C.border}`,
-                background: bookmark ? `${C.gold}18` : C.bgRaised,
-                color: bookmark ? C.gold : C.textSecondary,
-              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${
+                bookmark
+                  ? "border-gold-muted bg-gold/[9%] text-gold"
+                  : "border-line-subtle bg-surface-raised text-ink-secondary"
+              }`}
             >
               {bookmark ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
               {bookmark ? "Bookmarked" : "Bookmark"}
@@ -214,34 +196,32 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
             {/* Label editor */}
             {bookmark && labelEditing && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="flex items-center gap-2">
                 <input
                   autoFocus
                   value={bookmarkLabel}
                   onChange={(e) => setBookmarkLabel(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && saveLabel()}
                   placeholder='Label (e.g. "Morning reading")'
-                  style={{ fontSize: 12, padding: "5px 10px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 6, color: C.textPrimary, outline: "none", width: 180 }}
+                  className="text-xs px-[10px] py-[5px] bg-surface-overlay border border-line-subtle rounded-md text-ink-primary outline-none w-[180px]"
                 />
-                <button onClick={saveLabel} style={{ fontSize: 12, color: C.gold, background: "none", border: "none", cursor: "pointer" }}>Save</button>
+                <button onClick={saveLabel} className="text-xs text-gold bg-transparent border-none cursor-pointer">Save</button>
               </div>
             )}
             {bookmark && !labelEditing && bookmark.label && (
-              <button onClick={() => setLabelEditing(true)} style={{ fontSize: 12, color: C.textMuted, fontStyle: "italic", background: "none", border: "none", cursor: "pointer" }}>
-                "{bookmark.label}"
+              <button onClick={() => setLabelEditing(true)} className="text-xs text-ink-muted italic bg-transparent border-none cursor-pointer">
+                &quot;{bookmark.label}&quot;
               </button>
             )}
 
             {/* Notes button */}
             <button
               onClick={() => { if (!user) { router.push("/auth/login"); return; } setNoteOpen(o => !o); }}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "6px 12px",
-                borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: `1px solid ${noteOpen ? C.borderDefault : C.border}`,
-                background: noteOpen ? C.bgOverlay : C.bgRaised,
-                color: note ? C.textPrimary : C.textSecondary,
-              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${
+                noteOpen
+                  ? "border-line bg-surface-overlay text-ink-primary"
+                  : "border-line-subtle bg-surface-raised text-ink-secondary"
+              } ${note ? "text-ink-primary" : ""}`}
             >
               <StickyNote size={13} />
               {note ? "View note" : "Add note"}
@@ -249,7 +229,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           </div>
 
           {/* Bible text */}
-          <div style={{ fontFamily: "var(--font-reading, Georgia, serif)", fontSize: 17, lineHeight: 2, color: C.textPrimary }}>
+          <div className="font-reading text-[17px] leading-loose text-ink-primary">
             {chapterData.verses.map((verse) => {
               const lines = verse.text.split("\n");
               const isSelected = selectedVerse === verse.number;
@@ -258,23 +238,17 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                   <p
                     id={`v${verse.number}`}
                     onClick={() => selectVerse(verse.number)}
-                    style={{
-                      margin: "0 0 4px",
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      background: isSelected ? `${C.gold}12` : "transparent",
-                      borderLeft: isSelected ? `2px solid ${C.gold}` : "2px solid transparent",
-                      transition: "background 0.15s",
-                    }}
+                    className={`m-0 mb-1 px-2 py-1 rounded-md cursor-pointer border-l-2 transition-colors ${
+                      isSelected ? "bg-gold/[7%] border-l-gold" : "bg-transparent border-l-transparent"
+                    }`}
                   >
-                    <sup style={{ fontSize: 10, fontWeight: 700, color: isSelected ? C.gold : C.goldMuted, marginRight: 3, fontFamily: "ui-sans-serif, system-ui", verticalAlign: "super", userSelect: "none" }}>
+                    <sup className={`text-[10px] font-bold mr-[3px] font-sans align-super select-none ${isSelected ? "text-gold" : "text-gold-muted"}`}>
                       {verse.number}
                     </sup>
                     {lines.map((line, i) => (
                       <span key={i}>
                         {i > 0 && <br />}
-                        {i > 0 && <span style={{ display: "inline-block", width: 24 }} />}
+                        {i > 0 && <span className="inline-block w-6" />}
                         {line.trim()}
                       </span>
                     ))}
@@ -282,13 +256,13 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
                   {/* Share popover */}
                   {isSelected && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", marginBottom: 8, background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11, color: C.textMuted, marginRight: 4 }}>
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 mb-2 bg-surface-raised border border-line-subtle rounded-lg flex-wrap">
+                      <span className="text-[11px] text-ink-muted mr-1">
                         {book.name} {chapter}:{verse.number}
                       </span>
                       <button
                         onClick={() => copyVerse(verse.number)}
-                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 11, fontWeight: 600, color: copied ? C.gold : C.textSecondary, cursor: "pointer" }}
+                        className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${copied ? "text-gold" : "text-ink-secondary"}`}
                       >
                         {copied ? <Check size={12} /> : <Copy size={12} />}
                         {copied ? "Copied!" : "Copy"}
@@ -296,14 +270,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                       {typeof navigator !== "undefined" && "share" in navigator && (
                         <button
                           onClick={() => shareVerse(verse.number)}
-                          style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 11, fontWeight: 600, color: C.textSecondary, cursor: "pointer" }}
+                          className="flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold text-ink-secondary cursor-pointer"
                         >
                           <Share2 size={12} /> Share
                         </button>
                       )}
                       <button
                         onClick={() => setSelectedVerse(null)}
-                        style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 2 }}
+                        className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5"
                       >
                         <XIcon size={13} />
                       </button>
@@ -315,14 +289,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           </div>
 
           {/* Prev / Next navigation */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 64, paddingTop: 24, borderTop: `1px solid ${C.border}` }}>
+          <div className="flex justify-between items-center mt-16 pt-6 border-t border-t-line-subtle">
             {prevChapter ? (
-              <a href={`/bible/${book.id}/${prevChapter}?t=${translation}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.textSecondary, textDecoration: "none" }}>
+              <a href={`/bible/${book.id}/${prevChapter}?t=${translation}`} className="flex items-center gap-1.5 text-[13px] text-ink-secondary no-underline">
                 <ChevronLeft size={16} /> Chapter {prevChapter}
               </a>
             ) : <span />}
             {nextChapter ? (
-              <a href={`/bible/${book.id}/${nextChapter}?t=${translation}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.textSecondary, textDecoration: "none" }}>
+              <a href={`/bible/${book.id}/${nextChapter}?t=${translation}`} className="flex items-center gap-1.5 text-[13px] text-ink-secondary no-underline">
                 Chapter {nextChapter} <ChevronRight size={16} />
               </a>
             ) : <span />}
@@ -332,34 +306,34 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
       {/* Notes panel */}
       {noteOpen && (
-        <div style={{ width: 320, borderLeft: `1px solid ${C.border}`, background: C.bgRaised, display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <h3 style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, margin: 0 }}>Notes — {book.name} {chapter}</h3>
-            <button onClick={() => setNoteOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+        <div className="w-80 border-l border-l-line-subtle bg-surface-raised flex flex-col shrink-0">
+          <div className="px-4 py-3 border-b border-b-line-subtle flex items-center justify-between">
+            <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
+            <button onClick={() => setNoteOpen(false)} className="bg-transparent border-none cursor-pointer text-ink-muted text-lg leading-none p-0">×</button>
           </div>
           <textarea
-            style={{ flex: 1, background: "transparent", color: C.textPrimary, fontSize: 13, padding: 16, resize: "none", border: "none", outline: "none", lineHeight: 1.7, fontFamily: "inherit" }}
+            className="flex-1 bg-transparent text-ink-primary text-[13px] p-4 resize-none border-none outline-none leading-[1.7] font-[inherit]"
             placeholder={`Write your notes for ${book.name} ${chapter}…`}
             value={noteContent}
             onChange={(e) => handleNoteChange(e.target.value)}
           />
-          <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <div className="px-4 py-3 border-t border-t-line-subtle flex items-center justify-between gap-2">
             {note && (
               <button
                 onClick={deleteNote}
                 title="Delete note"
-                style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: 4, display: "flex", flexShrink: 0 }}
+                className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex shrink-0"
               >
                 <Trash2 size={14} />
               </button>
             )}
             {note?.updated_at && (
-              <span style={{ fontSize: 11, color: C.textMuted }}>Saved {new Date(note.updated_at).toLocaleDateString()}</span>
+              <span className="text-[11px] text-ink-muted">Saved {new Date(note.updated_at).toLocaleDateString()}</span>
             )}
             <button
               onClick={() => saveNote()}
               disabled={noteSaving}
-              style={{ marginLeft: "auto", padding: "6px 14px", background: C.gold, color: C.bg, fontSize: 12, fontWeight: 700, borderRadius: 6, border: "none", cursor: noteSaving ? "not-allowed" : "pointer", opacity: noteSaving ? 0.6 : 1 }}
+              className={`ml-auto px-[14px] py-1.5 bg-gold text-surface text-xs font-bold rounded-md border-none ${noteSaving ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
             >
               {noteSaving ? "Saving…" : noteSaved ? "Saved ✓" : "Save"}
             </button>

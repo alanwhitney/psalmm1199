@@ -7,17 +7,8 @@ import { BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getLastPositionUrl } from "@/lib/last-position";
 
-const C = {
-  bg: "#0e0e10",
-  bgRaised: "#18181c",
-  bgOverlay: "#222228",
-  border: "#2a2a32",
-  gold: "#c9a84c",
-  goldBright: "#e8c56a",
-  textPrimary: "#f0ede6",
-  textSecondary: "#9d9a95",
-  textMuted: "#5a5855",
-};
+const inputClass = "w-full px-3 py-2.5 bg-surface-overlay border border-line-subtle rounded-lg text-[13px] text-ink-primary outline-none box-border";
+const labelClass = "block text-[11px] text-ink-secondary font-semibold mb-1.5 uppercase tracking-[0.05em]";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -61,16 +52,16 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
-        <div style={{ textAlign: "center", maxWidth: 400 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: `${C.gold}1a`, border: `1px solid ${C.gold}66`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <BookOpen size={20} color={C.gold} />
+      <div className="min-h-screen bg-surface flex items-center justify-center px-4">
+        <div className="text-center max-w-[400px]">
+          <div className="w-12 h-12 rounded-xl bg-gold/[10%] border border-gold/40 flex items-center justify-center mx-auto mb-4">
+            <BookOpen size={20} className="text-gold" />
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 600, color: C.textPrimary, margin: "0 0 8px" }}>Check your email</h2>
-          <p style={{ fontSize: 14, color: C.textSecondary, lineHeight: 1.6, margin: "0 0 24px" }}>
-            We sent a confirmation link to <strong style={{ color: C.textPrimary }}>{email}</strong>. Click it to activate your account.
+          <h2 className="text-xl font-semibold text-ink-primary mb-2">Check your email</h2>
+          <p className="text-sm text-ink-secondary leading-[1.6] mb-6">
+            We sent a confirmation link to <strong className="text-ink-primary">{email}</strong>. Click it to activate your account.
           </p>
-          <Link href="/auth/login" style={{ fontSize: 13, color: C.gold, textDecoration: "none" }}>
+          <Link href="/auth/login" className="text-[13px] text-gold no-underline">
             Back to sign in →
           </Link>
         </div>
@@ -79,61 +70,61 @@ export default function SignupPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
-      <div style={{ width: "100%", maxWidth: 360 }}>
+    <div className="min-h-screen bg-surface flex items-center justify-center px-4">
+      <div className="w-full max-w-[360px]">
         {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <Link href="/" style={{ textDecoration: "none", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: C.bgRaised, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <BookOpen size={20} color={C.gold} />
+        <div className="text-center mb-8">
+          <Link href="/" className="no-underline inline-flex flex-col items-center gap-2">
+            <div className="w-12 h-12 rounded-xl bg-surface-raised border border-line-subtle flex items-center justify-center">
+              <BookOpen size={20} className="text-gold" />
             </div>
-            <span style={{ fontSize: 12, color: C.textMuted }}>Psalm 119:9</span>
+            <span className="text-xs text-ink-muted">Psalm 119:9</span>
           </Link>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: C.textPrimary, margin: "16px 0 4px" }}>Create an account</h1>
-          <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>Save bookmarks and notes as you read</p>
+          <h1 className="text-xl font-semibold text-ink-primary mt-4 mb-1">Create an account</h1>
+          <p className="text-[13px] text-ink-muted m-0">Save bookmarks and notes as you read</p>
         </div>
 
         {/* Form */}
-        <div style={{ background: C.bgRaised, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
+        <div className="bg-surface-raised border border-line-subtle rounded-xl p-6">
           <form onSubmit={handleSignup}>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 11, color: C.textSecondary, fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Email</label>
+            <div className="mb-4">
+              <label className={labelClass}>Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                style={{ width: "100%", padding: "10px 12px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.textPrimary, outline: "none", boxSizing: "border-box" }}
+                className={inputClass}
               />
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 11, color: C.textSecondary, fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Password</label>
+            <div className="mb-4">
+              <label className={labelClass}>Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                style={{ width: "100%", padding: "10px 12px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.textPrimary, outline: "none", boxSizing: "border-box" }}
+                className={inputClass}
               />
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 11, color: C.textSecondary, fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Confirm password</label>
+            <div className="mb-5">
+              <label className={labelClass}>Confirm password</label>
               <input
                 type="password"
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="••••••••"
-                style={{ width: "100%", padding: "10px 12px", background: C.bgOverlay, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.textPrimary, outline: "none", boxSizing: "border-box" }}
+                className={inputClass}
               />
             </div>
 
             {error && (
-              <div style={{ marginBottom: 16, padding: "10px 12px", background: "#ef444420", border: "1px solid #ef444440", borderRadius: 8, fontSize: 12, color: "#f87171" }}>
+              <div className="mb-4 px-3 py-2.5 bg-red-500/[8%] border border-red-500/25 rounded-lg text-xs text-red-400">
                 {error}
               </div>
             )}
@@ -141,20 +132,20 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              style={{ width: "100%", padding: "11px 0", background: C.gold, color: C.bg, fontWeight: 700, fontSize: 13, borderRadius: 8, border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1 }}
+              className={`w-full py-[11px] bg-gold text-surface font-bold text-[13px] rounded-lg border-none cursor-pointer ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               {loading ? "Creating account…" : "Create account"}
             </button>
           </form>
         </div>
 
-        <p style={{ textAlign: "center", fontSize: 13, color: C.textMuted, marginTop: 16 }}>
+        <p className="text-center text-[13px] text-ink-muted mt-4">
           Already have an account?{" "}
-          <Link href="/auth/login" style={{ color: C.gold, textDecoration: "none" }}>Sign in</Link>
+          <Link href="/auth/login" className="text-gold no-underline">Sign in</Link>
         </p>
 
-        <p style={{ textAlign: "center", marginTop: 12 }}>
-          <Link href={typeof window !== "undefined" ? getLastPositionUrl() : "/bible/PSA/119"} style={{ fontSize: 12, color: C.textMuted, textDecoration: "none" }}>
+        <p className="text-center mt-3">
+          <Link href={typeof window !== "undefined" ? getLastPositionUrl() : "/bible/PSA/119"} className="text-xs text-ink-muted no-underline">
             Continue reading without an account →
           </Link>
         </p>
