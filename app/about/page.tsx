@@ -61,7 +61,7 @@ export default async function AboutPage() {
           },
           {
             heading: "Translations",
-            body: "Currently available in King James Version (KJV), New King James Version (NKJV), and New International Version (NIV). Bible text is provided through the API.Bible service."
+            body: "Currently available in King James Version (KJV), New King James Version (NKJV), New International Version (NIV), and English Standard Version (ESV). KJV text is in the public domain. NKJV and NIV text is provided through the API.Bible service. ESV text is provided through the Crossway ESV API."
           },
           {
             heading: "Features",
@@ -73,7 +73,7 @@ export default async function AboutPage() {
           },
           {
             heading: "About us",
-            body: "This is a simple tool created by Alan Whitney in South West East Corinth in Central Maine. It's free, it's simple. Enjoy."
+            body: "This is a simple tool created by Alan Whitney in South West East Corinth in Central Maine. It's free, it's simple. Enjoy. God Bless."
           },
         ].map(({ heading, body }) => (
           <div key={heading} className="mb-7">
@@ -85,6 +85,27 @@ export default async function AboutPage() {
             </p>
           </div>
         ))}
+
+        {/* Scripture Credits */}
+        <div className="mt-10 mb-2">
+          <h2 className="text-[13px] font-bold text-gold uppercase tracking-[0.08em] mb-4">
+            Scripture Credits
+          </h2>
+          <div className="flex flex-col gap-3 text-[12px] text-ink-muted leading-[1.7]">
+            <p className="m-0">
+              Scripture quotations marked <span className="text-ink-secondary font-semibold">ESV</span> are from the ESV® Bible (The Holy Bible, English Standard Version®), copyright © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.
+            </p>
+            <p className="m-0">
+              Scripture quotations marked <span className="text-ink-secondary font-semibold">NKJV</span> are taken from the New King James Version®. Copyright © 1982 by Thomas Nelson. Used by permission. All rights reserved.
+            </p>
+            <p className="m-0">
+              Scripture quotations marked <span className="text-ink-secondary font-semibold">NIV</span> are taken from the Holy Bible, New International Version®, NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission of Zondervan. All rights reserved worldwide.
+            </p>
+            <p className="m-0">
+              Scripture quotations marked <span className="text-ink-secondary font-semibold">KJV</span> are from the King James Version, which is in the public domain.
+            </p>
+          </div>
+        </div>
 
         {/* Divider */}
         <div className="h-px bg-line-subtle my-8" />

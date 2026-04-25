@@ -19,7 +19,7 @@ interface ReaderLayoutProps {
   onHighlightVerse?: (verse: number | null) => void;
 }
 
-const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV"];
+const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV"];
 const DESKTOP_BREAKPOINT = 1024;
 
 export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse }: ReaderLayoutProps) {

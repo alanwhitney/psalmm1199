@@ -161,7 +161,7 @@ export default function PlanTab({ userId, initialPlans, initialCompletions, defa
             <div className="mb-4">
               <label className="text-[11px] text-ink-secondary font-semibold uppercase tracking-[0.05em] block mb-1.5">Translation</label>
               <div className="flex gap-2">
-                {["KJV", "NKJV", "NIV"].map(t => (
+                {["KJV", "NKJV", "NIV", "ESV"].map(t => (
                   <button key={t} onClick={() => setSelectedTranslation(t)} className={`flex-1 py-[7px] text-xs font-bold rounded-md cursor-pointer ${
                     selectedTranslation === t
                       ? "bg-gold text-surface border-none"

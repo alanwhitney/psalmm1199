@@ -1,7 +1,7 @@
 import { BOOK_BY_ID } from "@/lib/books";
 
 const DEFAULT = "/bible/PSA/119";
-const VALID_TRANSLATIONS = ["KJV", "NKJV", "NIV"];
+const VALID_TRANSLATIONS = ["KJV", "NKJV", "NIV", "ESV"];
 
 /**
  * Parse last_position cookie value into a valid URL.

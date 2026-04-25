@@ -1,15 +1,17 @@
 import { Translation, Chapter, Verse } from "@/types";
+import { BIBLE_BOOKS } from "@/lib/books";
 
-const TRANSLATION_IDS: Record<Translation, string> = {
+const TRANSLATION_IDS: Record<Exclude<Translation, "ESV">, string> = {
   KJV: process.env.BIBLE_API_KJV_ID || "de4e12af7f28f599-02",
   NKJV: process.env.BIBLE_API_NKJV_ID || "",
   NIV: process.env.BIBLE_API_NIV_ID || "3e2eb613d45e131e-01",
 };
 
-const API_BASE = "https://rest.api.bible/v1";
+const API_BIBLE_BASE = "https://rest.api.bible/v1";
+const ESV_API_BASE = "https://api.esv.org/v3/passage/text";
 
 async function apiBibleFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BIBLE_BASE}${path}`, {
     headers: { "api-key": process.env.BIBLE_API_KEY! },
     next: { revalidate: 60 * 60 * 24 },
   });
@@ -17,7 +19,43 @@ async function apiBibleFetch(path: string) {
   return res.json();
 }
 
+async function fetchEsvChapter(bookId: string, chapter: number): Promise<Chapter> {
+  const book = BIBLE_BOOKS.find((b) => b.id === bookId);
+  const ref = `${book?.name ?? bookId} ${chapter}`;
+  const params = new URLSearchParams({
+    q: ref,
+    "include-verse-numbers": "true",
+    "include-headings": "false",
+    "include-footnotes": "false",
+    "include-passage-references": "false",
+    "include-short-copyright": "false",
+    "include-copyright": "false",
+  });
+  const res = await fetch(`${ESV_API_BASE}?${params}`, {
+    headers: { Authorization: `Token ${process.env.BIBLE_ESV_API_KEY}` },
+    next: { revalidate: 60 * 60 * 24 },
+  });
+  if (!res.ok) throw new Error(`ESV API error: ${res.status} ${res.statusText}`);
+  const data = await res.json();
+  const text: string = data.passages?.[0] ?? "";
+  return { book: bookId, bookId, chapter, translation: "ESV", verses: parseEsvText(text) };
+}
+
+function parseEsvText(text: string): Verse[] {
+  const parts = text.split(/\[(\d+)\]/);
+  const verses: Verse[] = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const number = parseInt(parts[i], 10);
+    const raw = parts[i + 1] ?? "";
+    const verseText = raw.replace(/\n{2,}/g, "\n").trim();
+    if (verseText) verses.push({ number, text: verseText });
+  }
+  return verses;
+}
+
 export async function fetchChapter(bookId: string, chapter: number, translation: Translation): Promise<Chapter> {
+  if (translation === "ESV") return fetchEsvChapter(bookId, chapter);
+
   const bibleId = TRANSLATION_IDS[translation];
   if (!bibleId) throw new Error(`Translation ${translation} not configured.`);
 
