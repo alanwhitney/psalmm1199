@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/ThemeProvider";
 import SearchPanel from "./SearchPanel";
 import { Book, Translation } from "@/types";
 import { OT_BOOKS, NT_BOOKS } from "@/lib/books";
@@ -25,6 +26,7 @@ const DESKTOP_BREAKPOINT = 1024;
 export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse }: ReaderLayoutProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { theme, mounted, toggle } = useTheme();
 
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -158,6 +160,9 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={toggle} className="bg-transparent border-none cursor-pointer text-ink-muted p-1.5 flex items-center" aria-label="Toggle theme">
+              {mounted ? (theme === "dark" ? <Sun size={16} /> : <Moon size={16} />) : <span className="w-4 h-4 block" />}
+            </button>
             <button onClick={() => setSearchOpen(true)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1.5 flex items-center">
               <Search size={16} />
             </button>

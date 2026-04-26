@@ -2,7 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light mode (default) */
 :root {
+  --surface: #f5f1e8;
+  --surface-raised: #faf8f4;
+  --surface-overlay: #ede9de;
+  --line-subtle: #ddd9ce;
+  --line: #c5bfb3;
+  --gold: #b07d20;
+  --gold-muted: #8a6e2f;
+  --gold-bright: #c9a84c;
+  --ink-primary: #1a1714;
+  --ink-secondary: #5a5650;
+  --ink-muted: #9d9a95;
+  --font-reading: var(--font-reading, Georgia, serif);
+}
+
+/* Dark mode */
+.dark {
   --surface: #0e0e10;
   --surface-raised: #18181c;
   --surface-overlay: #222228;
@@ -14,13 +31,12 @@
   --ink-primary: #f0ede6;
   --ink-secondary: #9d9a95;
   --ink-muted: #5a5855;
-  --font-reading: var(--font-reading, Georgia, serif);
 }
 
 /* Base */
 html, body {
-  background-color: #0e0e10;
-  color: #f0ede6;
+  background-color: var(--surface);
+  color: var(--ink-primary);
   height: 100%;
 }
 

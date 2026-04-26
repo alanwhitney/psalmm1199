@@ -5,6 +5,7 @@ module.exports = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
@@ -13,23 +14,23 @@ module.exports = {
       },
       colors: {
         surface: {
-          DEFAULT: "#0e0e10",
-          raised: "#18181c",
-          overlay: "#222228",
+          DEFAULT: "var(--surface)",
+          raised: "var(--surface-raised)",
+          overlay: "var(--surface-overlay)",
         },
         line: {
-          subtle: "#2a2a32",
-          DEFAULT: "#3a3a46",
+          subtle: "var(--line-subtle)",
+          DEFAULT: "var(--line)",
         },
         gold: {
-          DEFAULT: "#c9a84c",
-          muted: "#8a6e2f",
-          bright: "#e8c56a",
+          DEFAULT: "var(--gold)",
+          muted: "var(--gold-muted)",
+          bright: "var(--gold-bright)",
         },
         ink: {
-          primary: "#f0ede6",
-          secondary: "#9d9a95",
-          muted: "#5a5855",
+          primary: "var(--ink-primary)",
+          secondary: "var(--ink-secondary)",
+          muted: "var(--ink-muted)",
         },
       },
       typography: {
