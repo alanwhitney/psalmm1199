@@ -33,7 +33,7 @@ export default function RootLayout({
         {/* Set theme class before first paint to avoid flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t!=='light')}catch(e){document.documentElement.classList.add('dark')}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t!=='light');var s=parseInt(localStorage.getItem('fontSize')||'',10);document.documentElement.style.setProperty('--reading-font-size',(isNaN(s)?17:s)+'px')}catch(e){document.documentElement.classList.add('dark')}})()`,
           }}
         />
       </head>

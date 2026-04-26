@@ -229,7 +229,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           </div>
 
           {/* Bible text */}
-          <div className="font-reading text-[17px] leading-loose text-ink-primary">
+          <div className="font-reading leading-loose text-ink-primary" style={{ fontSize: "var(--reading-font-size, 17px)" }}>
             {chapterData.verses.map((verse) => {
               const lines = verse.text.split("\n");
               const isSelected = selectedVerse === verse.number;

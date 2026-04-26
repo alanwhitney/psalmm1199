@@ -26,7 +26,7 @@ const DESKTOP_BREAKPOINT = 1024;
 export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse }: ReaderLayoutProps) {
   const router = useRouter();
   const supabase = createClient();
-  const { theme, mounted, toggle } = useTheme();
+  const { theme, mounted, toggle, fontSize, incFontSize, decFontSize } = useTheme();
 
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -160,6 +160,9 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={decFontSize} disabled={!mounted || fontSize <= 13} className="bg-transparent border-none cursor-pointer text-ink-muted text-[11px] font-bold px-1 py-1 disabled:opacity-30" aria-label="Decrease font size">A−</button>
+            <button onClick={incFontSize} disabled={!mounted || fontSize >= 25} className="bg-transparent border-none cursor-pointer text-ink-muted text-[13px] font-bold px-1 py-1 disabled:opacity-30" aria-label="Increase font size">A+</button>
+            <div className="w-px h-4 bg-line-subtle" />
             <button onClick={toggle} className="bg-transparent border-none cursor-pointer text-ink-muted p-1.5 flex items-center" aria-label="Toggle theme">
               {mounted ? (theme === "dark" ? <Sun size={16} /> : <Moon size={16} />) : <span className="w-4 h-4 block" />}
             </button>
