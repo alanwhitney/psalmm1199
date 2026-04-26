@@ -84,6 +84,26 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
         </div>
       </div>
 
+      {/* Display */}
+      <div className="px-4 py-3 border-b border-b-line-subtle">
+        <p className="text-[10px] uppercase tracking-[0.1em] text-ink-muted mb-2 font-semibold">Display</p>
+        <div className="flex items-center justify-between">
+          <div className="flex gap-1.5">
+            <button onClick={() => { if (theme !== "light") toggle(); }} className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md cursor-pointer ${theme === "light" ? "bg-gold text-surface border-none" : "bg-surface-overlay text-ink-secondary border border-line-subtle"}`}>
+              <Sun size={11} /> Light
+            </button>
+            <button onClick={() => { if (theme !== "dark") toggle(); }} className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md cursor-pointer ${theme === "dark" ? "bg-gold text-surface border-none" : "bg-surface-overlay text-ink-secondary border border-line-subtle"}`}>
+              <Moon size={11} /> Dark
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={decFontSize} disabled={!mounted || fontSize <= 13} className="bg-surface-overlay border border-line-subtle rounded-md w-7 h-7 flex items-center justify-center text-[11px] font-bold text-ink-secondary cursor-pointer disabled:opacity-30">A−</button>
+            <span className="text-[11px] text-ink-muted w-7 text-center">{mounted ? fontSize : 17}px</span>
+            <button onClick={incFontSize} disabled={!mounted || fontSize >= 25} className="bg-surface-overlay border border-line-subtle rounded-md w-7 h-7 flex items-center justify-center text-[11px] font-bold text-ink-secondary cursor-pointer disabled:opacity-30">A+</button>
+          </div>
+        </div>
+      </div>
+
       {/* Book list */}
       <div className="flex-1 overflow-y-auto py-2">
         {[{ label: "Old Testament", books: OT_BOOKS }, { label: "New Testament", books: NT_BOOKS }].map(({ label, books }) => (
@@ -160,12 +180,6 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={decFontSize} disabled={!mounted || fontSize <= 13} className="bg-transparent border-none cursor-pointer text-ink-muted text-[11px] font-bold px-1 py-1 disabled:opacity-30" aria-label="Decrease font size">A−</button>
-            <button onClick={incFontSize} disabled={!mounted || fontSize >= 25} className="bg-transparent border-none cursor-pointer text-ink-muted text-[13px] font-bold px-1 py-1 disabled:opacity-30" aria-label="Increase font size">A+</button>
-            <div className="w-px h-4 bg-line-subtle" />
-            <button onClick={toggle} className="bg-transparent border-none cursor-pointer text-ink-muted p-1.5 flex items-center" aria-label="Toggle theme">
-              {mounted ? (theme === "dark" ? <Sun size={16} /> : <Moon size={16} />) : <span className="w-4 h-4 block" />}
-            </button>
             <button onClick={() => setSearchOpen(true)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1.5 flex items-center">
               <Search size={16} />
             </button>
