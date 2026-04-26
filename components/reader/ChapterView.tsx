@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon } from "lucide-react";
-import { Book, Translation, Chapter, Bookmark as BookmarkType, Note } from "@/types";
+import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
+
+const HIGHLIGHT_COLORS = [
+  { id: "yellow", bg: "rgba(201,168,76,0.22)",  swatch: "#c9a84c" },
+  { id: "green",  bg: "rgba(74,163,120,0.22)",  swatch: "#4aa378" },
+  { id: "blue",   bg: "rgba(74,120,201,0.22)",  swatch: "#4a78c9" },
+  { id: "rose",   bg: "rgba(220,100,110,0.22)", swatch: "#dc646e" },
+  { id: "purple", bg: "rgba(150,100,220,0.22)", swatch: "#9664dc" },
+] as const;
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -14,12 +22,13 @@ interface ChapterViewProps {
   user: { id: string; email?: string } | null;
   initialBookmark: BookmarkType | null;
   initialNote: Note | null;
+  initialHighlights: Highlight[];
   openNote?: boolean;
   onVersesReady?: (verses: { number: number; text: string }[]) => void;
   externalHighlight?: number | null;
 }
 
-export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, openNote, onVersesReady, externalHighlight }: ChapterViewProps) {
+export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, initialHighlights, openNote, onVersesReady, externalHighlight }: ChapterViewProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -27,6 +36,9 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [note, setNote] = useState<Note | null>(initialNote);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
+  const [highlights, setHighlights] = useState<Record<number, string>>(
+    Object.fromEntries(initialHighlights.map((h) => [h.verse, h.color]))
+  );
 
   useEffect(() => {
     if (chapterData) onVersesReady?.(chapterData.verses);
@@ -73,6 +85,22 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       await navigator.share({ text });
     } else {
       await copyVerse(num);
+    }
+  }
+
+  async function toggleHighlight(verseNum: number, colorId: string) {
+    if (!user) { router.push("/auth/login"); return; }
+    if (highlights[verseNum] === colorId) {
+      await supabase.from("highlights").delete()
+        .eq("user_id", user.id).eq("book_id", book.id)
+        .eq("chapter", chapter).eq("verse", verseNum).eq("translation", translation);
+      setHighlights((prev) => { const next = { ...prev }; delete next[verseNum]; return next; });
+    } else {
+      await supabase.from("highlights").upsert(
+        { user_id: user.id, book_id: book.id, chapter, verse: verseNum, translation, color: colorId },
+        { onConflict: "user_id,book_id,chapter,verse,translation" }
+      );
+      setHighlights((prev) => ({ ...prev, [verseNum]: colorId }));
     }
   }
 
@@ -233,14 +261,16 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
             {chapterData.verses.map((verse) => {
               const lines = verse.text.split("\n");
               const isSelected = selectedVerse === verse.number;
+              const highlightColor = HIGHLIGHT_COLORS.find((c) => c.id === highlights[verse.number]);
               return (
                 <div key={verse.number}>
                   <p
                     id={`v${verse.number}`}
                     onClick={() => selectVerse(verse.number)}
                     className={`m-0 mb-1 px-2 py-1 rounded-md cursor-pointer border-l-2 transition-colors ${
-                      isSelected ? "bg-gold/[7%] border-l-gold" : "bg-transparent border-l-transparent"
+                      isSelected ? "border-l-gold" : "border-l-transparent"
                     }`}
+                    style={{ backgroundColor: isSelected ? "rgba(201,168,76,0.07)" : highlightColor?.bg }}
                   >
                     <sup className={`text-[10px] font-bold mr-[3px] font-sans align-super select-none ${isSelected ? "text-gold" : "text-gold-muted"}`}>
                       {verse.number}
@@ -254,33 +284,62 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                     ))}
                   </p>
 
-                  {/* Share popover */}
+                  {/* Verse popover */}
                   {isSelected && (
-                    <div className="flex items-center gap-1.5 px-2 py-1.5 mb-2 bg-surface-raised border border-line-subtle rounded-lg flex-wrap">
-                      <span className="text-[11px] text-ink-muted mr-1">
-                        {book.name} {chapter}:{verse.number}
-                      </span>
-                      <button
-                        onClick={() => copyVerse(verse.number)}
-                        className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${copied ? "text-gold" : "text-ink-secondary"}`}
-                      >
-                        {copied ? <Check size={12} /> : <Copy size={12} />}
-                        {copied ? "Copied!" : "Copy"}
-                      </button>
-                      {typeof navigator !== "undefined" && "share" in navigator && (
+                    <div className="px-2 py-1.5 mb-2 bg-surface-raised border border-line-subtle rounded-lg">
+                      {/* Copy / share row */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] text-ink-muted mr-1">
+                          {book.name} {chapter}:{verse.number}
+                        </span>
                         <button
-                          onClick={() => shareVerse(verse.number)}
-                          className="flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold text-ink-secondary cursor-pointer"
+                          onClick={() => copyVerse(verse.number)}
+                          className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${copied ? "text-gold" : "text-ink-secondary"}`}
                         >
-                          <Share2 size={12} /> Share
+                          {copied ? <Check size={12} /> : <Copy size={12} />}
+                          {copied ? "Copied!" : "Copy"}
                         </button>
-                      )}
-                      <button
-                        onClick={() => setSelectedVerse(null)}
-                        className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5"
-                      >
-                        <XIcon size={13} />
-                      </button>
+                        {typeof navigator !== "undefined" && "share" in navigator && (
+                          <button
+                            onClick={() => shareVerse(verse.number)}
+                            className="flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold text-ink-secondary cursor-pointer"
+                          >
+                            <Share2 size={12} /> Share
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setSelectedVerse(null)}
+                          className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5"
+                        >
+                          <XIcon size={13} />
+                        </button>
+                      </div>
+                      {/* Highlight row */}
+                      <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-line-subtle">
+                        <span className="text-[10px] text-ink-muted">Highlight</span>
+                        <div className="flex items-center gap-1.5">
+                          {HIGHLIGHT_COLORS.map((c) => (
+                            <button
+                              key={c.id}
+                              onClick={() => toggleHighlight(verse.number, c.id)}
+                              style={{ backgroundColor: c.swatch }}
+                              className={`w-4 h-4 rounded-full cursor-pointer border-2 transition-transform ${
+                                highlights[verse.number] === c.id ? "border-ink-primary scale-110" : "border-transparent"
+                              }`}
+                              aria-label={`Highlight ${c.id}`}
+                            />
+                          ))}
+                        </div>
+                        {highlights[verse.number] && (
+                          <button
+                            onClick={() => toggleHighlight(verse.number, highlights[verse.number])}
+                            className="ml-auto flex items-center gap-1 text-[10px] text-ink-muted bg-transparent border-none cursor-pointer px-1"
+                            aria-label="Remove highlight"
+                          >
+                            <XIcon size={11} /> Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

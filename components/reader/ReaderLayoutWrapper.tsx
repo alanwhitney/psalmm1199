@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Book, Translation, Chapter, Bookmark, Note } from "@/types";
+import { Book, Translation, Chapter, Bookmark, Note, Highlight } from "@/types";
 import ReaderLayout from "./ReaderLayout";
 import ChapterView from "./ChapterView";
 
@@ -13,11 +13,12 @@ interface Props {
   chapterData: Chapter | null;
   initialBookmark: Bookmark | null;
   initialNote: Note | null;
+  initialHighlights: Highlight[];
   openNote?: boolean;
 }
 
 export default function ReaderLayoutWrapper({
-  book, chapter, translation, user, chapterData, initialBookmark, initialNote, openNote
+  book, chapter, translation, user, chapterData, initialBookmark, initialNote, initialHighlights, openNote
 }: Props) {
   const [verses, setVerses] = useState<{ number: number; text: string }[]>([]);
   const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
@@ -39,6 +40,7 @@ export default function ReaderLayoutWrapper({
         user={user}
         initialBookmark={initialBookmark}
         initialNote={initialNote}
+        initialHighlights={initialHighlights}
         openNote={openNote}
         onVersesReady={setVerses}
         externalHighlight={highlightVerse}

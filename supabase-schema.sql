@@ -88,3 +88,37 @@ create trigger notes_updated_at
   before update on notes
   for each row
   execute function update_updated_at_column();
+
+-- ─────────────────────────────────────────────
+-- Highlights
+-- ─────────────────────────────────────────────
+create table if not exists highlights (
+  id          uuid default uuid_generate_v4() primary key,
+  user_id     uuid references auth.users(id) on delete cascade not null,
+  book_id     text not null,
+  chapter     integer not null,
+  verse       integer not null,
+  translation text not null default 'KJV',
+  color       text not null default 'yellow',
+  created_at  timestamptz default now() not null,
+
+  unique(user_id, book_id, chapter, verse, translation)
+);
+
+alter table highlights enable row level security;
+
+create policy "Users can view their own highlights"
+  on highlights for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert their own highlights"
+  on highlights for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own highlights"
+  on highlights for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete their own highlights"
+  on highlights for delete
+  using (auth.uid() = user_id);

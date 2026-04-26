@@ -55,6 +55,18 @@ export interface Note {
   updated_at: string;
 }
 
+// Highlight types
+export interface Highlight {
+  id: string;
+  user_id: string;
+  book_id: string;
+  chapter: number;
+  verse: number;
+  translation: Translation;
+  color: string;
+  created_at: string;
+}
+
 // Navigation
 export interface BibleLocation {
   bookId: string;

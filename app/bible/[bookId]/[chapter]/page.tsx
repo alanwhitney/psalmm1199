@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { fetchChapter } from "@/lib/bible-api";
 import { BOOK_BY_ID } from "@/lib/books";
-import { Translation } from "@/types";
+import { Translation, Highlight } from "@/types";
 import ReaderLayoutWrapper from "@/components/reader/ReaderLayoutWrapper";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -38,14 +38,17 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
 
   let bookmark = null;
   let note = null;
+  let highlights: Highlight[] = [];
 
   if (user) {
-    const [{ data: bm }, { data: nt }] = await Promise.all([
+    const [{ data: bm }, { data: nt }, { data: hl }] = await Promise.all([
       supabase.from("bookmarks").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
       supabase.from("notes").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
+      supabase.from("highlights").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation),
     ]);
     bookmark = bm;
     note = nt;
+    highlights = hl ?? [];
   }
 
   return (
@@ -57,6 +60,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       chapterData={chapterData}
       initialBookmark={bookmark}
       initialNote={note}
+      initialHighlights={highlights}
       openNote={noteParam === "1"}
     />
   );
