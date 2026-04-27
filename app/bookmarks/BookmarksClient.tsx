@@ -3,11 +3,24 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, Bookmark, StickyNote, Trash2, LogOut, ChevronRight, ArrowLeft, CalendarDays, Search, X } from "lucide-react";
+import { BookOpen, Bookmark, StickyNote, Trash2, LogOut, ChevronRight, ArrowLeft, CalendarDays, Search, X, ChevronsRight } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
+import { BIBLE_BOOKS, BOOK_BY_ID } from "@/lib/books";
 import PlanTab from "./PlanTab";
+
+function nextBookmarkPosition(bookId: string, chapter: number): { bookId: string; bookName: string; chapter: number; label: string } | null {
+  const book = BOOK_BY_ID[bookId];
+  if (!book) return null;
+  if (chapter < book.chapters) {
+    return { bookId: book.id, bookName: book.name, chapter: chapter + 1, label: `${book.abbreviation} ${chapter + 1}` };
+  }
+  const idx = BIBLE_BOOKS.findIndex((b) => b.id === bookId);
+  if (idx === -1 || idx === BIBLE_BOOKS.length - 1) return null;
+  const next = BIBLE_BOOKS[idx + 1];
+  return { bookId: next.id, bookName: next.name, chapter: 1, label: `${next.abbreviation} 1` };
+}
 
 interface Props {
   bookmarks: BookmarkType[];
@@ -39,6 +52,13 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
   async function deleteBookmark(id: string) {
     await supabase.from("bookmarks").delete().eq("id", id);
     setBookmarks(prev => prev.filter(b => b.id !== id));
+  }
+
+  async function advanceBookmark(id: string, bookId: string, chapter: number) {
+    const next = nextBookmarkPosition(bookId, chapter);
+    if (!next) return;
+    await supabase.from("bookmarks").update({ book_id: next.bookId, book_name: next.bookName, chapter: next.chapter }).eq("id", id);
+    setBookmarks(prev => prev.map(b => b.id === id ? { ...b, book_id: next.bookId, book_name: next.bookName, chapter: next.chapter } : b));
   }
 
   async function handleSignOut() {
@@ -104,7 +124,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
             <EmptyState icon={<Bookmark size={28} className="text-ink-muted" />} title="No bookmarks yet" message="While reading, tap the Bookmark button to save your place in any chapter." action={{ href: "/bible/GEN/1", label: "Start reading" }} />
           ) : (
             <div className="flex flex-col gap-2">
-              {bookmarks.map(bm => <BookmarkCard key={bm.id} bookmark={bm} onDelete={() => deleteBookmark(bm.id)} />)}
+              {bookmarks.map(bm => <BookmarkCard key={bm.id} bookmark={bm} onDelete={() => deleteBookmark(bm.id)} onAdvance={() => advanceBookmark(bm.id, bm.book_id, bm.chapter)} />)}
             </div>
           )
         )}
@@ -157,8 +177,9 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
   );
 }
 
-function BookmarkCard({ bookmark, onDelete }: { bookmark: BookmarkType; onDelete: () => void }) {
+function BookmarkCard({ bookmark, onDelete, onAdvance }: { bookmark: BookmarkType; onDelete: () => void; onAdvance: () => void }) {
   const [confirming, setConfirming] = useState(false);
+  const next = nextBookmarkPosition(bookmark.book_id, bookmark.chapter);
   return (
     <div className="bg-surface-raised border border-line-subtle rounded-[10px] px-4 py-[14px] flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
@@ -178,6 +199,15 @@ function BookmarkCard({ bookmark, onDelete }: { bookmark: BookmarkType; onDelete
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
+        {next && (
+          <button
+            onClick={onAdvance}
+            title={`Advance to ${next.bookName} ${next.chapter}`}
+            className="flex items-center gap-1 text-xs text-ink-secondary px-[10px] py-1.5 bg-surface-overlay rounded-md border border-line-subtle cursor-pointer"
+          >
+            <ChevronsRight size={12} /> {next.label}
+          </button>
+        )}
         <Link href={`/bible/${bookmark.book_id}/${bookmark.chapter}?t=${bookmark.translation}`} className="flex items-center gap-1 text-xs text-ink-secondary no-underline px-[10px] py-1.5 bg-surface-overlay rounded-md border border-line-subtle">
           Open <ChevronRight size={12} />
         </Link>
