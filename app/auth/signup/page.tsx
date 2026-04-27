@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getLastPositionUrl } from "@/lib/last-position";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 const inputClass = "w-full px-3 py-2.5 bg-surface-overlay border border-line-subtle rounded-lg text-[13px] text-ink-primary outline-none box-border";
 const labelClass = "block text-[11px] text-ink-secondary font-semibold mb-1.5 uppercase tracking-[0.05em]";
@@ -82,6 +83,18 @@ export default function SignupPage() {
           </Link>
           <h1 className="text-xl font-semibold text-ink-primary mt-4 mb-1">Create an account</h1>
           <p className="text-[13px] text-ink-muted m-0">Save bookmarks and notes as you read</p>
+        </div>
+
+        {/* Google */}
+        <div className="mb-4">
+          <GoogleSignInButton />
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-line-subtle" />
+          <span className="text-[11px] text-ink-muted uppercase tracking-[0.08em]">or</span>
+          <div className="flex-1 h-px bg-line-subtle" />
         </div>
 
         {/* Form */}
