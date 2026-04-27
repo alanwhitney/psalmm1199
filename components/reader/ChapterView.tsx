@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square } from "lucide-react";
+import { useSpeech } from "@/hooks/useSpeech";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
 
 const HIGHLIGHT_COLORS = [
@@ -39,6 +40,8 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [highlights, setHighlights] = useState<Record<number, string>>(
     Object.fromEntries(initialHighlights.map((h) => [h.verse, h.color]))
   );
+
+  const speech = useSpeech(chapterData?.verses ?? []);
 
   useEffect(() => {
     if (chapterData) onVersesReady?.(chapterData.verses);
@@ -254,13 +257,60 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               <StickyNote size={13} />
               {note ? "View note" : "Add note"}
             </button>
+
+            {/* Listen button */}
+            {speech.state === "idle" && (
+              <button
+                onClick={speech.play}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-line-subtle bg-surface-raised text-ink-secondary"
+              >
+                <Volume2 size={13} /> Listen
+              </button>
+            )}
           </div>
+
+          {/* Audio player bar */}
+          {speech.state !== "idle" && (
+            <div className="flex items-center gap-3 px-3 py-2 mb-6 bg-surface-overlay border border-line-subtle rounded-lg">
+              <button
+                onClick={speech.state === "playing" ? speech.pause : speech.resume}
+                className="bg-transparent border-none cursor-pointer text-ink-primary p-0.5 flex"
+                aria-label={speech.state === "playing" ? "Pause" : "Resume"}
+              >
+                {speech.state === "playing" ? <Pause size={15} /> : <Play size={15} />}
+              </button>
+              <div className="flex-1 text-[12px] text-ink-secondary">
+                {speech.activeVerse ? `Verse ${speech.activeVerse}` : "Listening…"}
+              </div>
+              <div className="flex items-center gap-1">
+                {[0.8, 1, 1.25, 1.5].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => speech.changeRate(r)}
+                    className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer border-none ${
+                      speech.rate === r ? "bg-gold text-surface font-bold" : "bg-transparent text-ink-muted"
+                    }`}
+                  >
+                    {r}×
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={speech.stop}
+                className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5 flex"
+                aria-label="Stop"
+              >
+                <Square size={13} />
+              </button>
+            </div>
+          )}
 
           {/* Bible text */}
           <div className="font-reading leading-loose text-ink-primary" style={{ fontSize: "var(--reading-font-size, 17px)" }}>
             {chapterData.verses.map((verse) => {
               const lines = verse.text.split("\n");
               const isSelected = selectedVerse === verse.number;
+              const isNarrating = speech.activeVerse === verse.number;
               const highlightColor = HIGHLIGHT_COLORS.find((c) => c.id === highlights[verse.number]);
               return (
                 <div key={verse.number}>
@@ -268,9 +318,16 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                     id={`v${verse.number}`}
                     onClick={() => selectVerse(verse.number)}
                     className={`m-0 mb-1 px-2 py-1 rounded-md cursor-pointer border-l-2 transition-colors ${
-                      isSelected ? "border-l-gold" : "border-l-transparent"
+                      isSelected ? "border-l-gold" : isNarrating ? "border-l-gold" : "border-l-transparent"
                     }`}
-                    style={{ backgroundColor: isSelected ? "rgba(201,168,76,0.07)" : highlightColor?.bg }}
+                    style={{
+                      backgroundColor: isNarrating
+                        ? "rgba(201,168,76,0.15)"
+                        : isSelected
+                        ? "rgba(201,168,76,0.07)"
+                        : highlightColor?.bg,
+                      transition: "background-color 0.3s ease",
+                    }}
                   >
                     <sup className={`text-[10px] font-bold mr-[3px] font-sans align-super select-none ${isSelected ? "text-gold" : "text-gold-muted"}`}>
                       {verse.number}
