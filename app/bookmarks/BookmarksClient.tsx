@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, Bookmark, StickyNote, Trash2, LogOut, ChevronRight, ArrowLeft, CalendarDays } from "lucide-react";
+import { BookOpen, Bookmark, StickyNote, Trash2, LogOut, ChevronRight, ArrowLeft, CalendarDays, Search, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
@@ -27,6 +27,14 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) ?? "bookmarks");
   const [bookmarks, setBookmarks] = useState(initial);
+  const [noteSearch, setNoteSearch] = useState("");
+
+  const filteredNotes = noteSearch.trim()
+    ? notes.filter(n =>
+        n.content.toLowerCase().includes(noteSearch.toLowerCase()) ||
+        `${n.book_name} ${n.chapter}`.toLowerCase().includes(noteSearch.toLowerCase())
+      )
+    : notes;
 
   async function deleteBookmark(id: string) {
     await supabase.from("bookmarks").delete().eq("id", id);
@@ -106,9 +114,32 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
           notes.length === 0 ? (
             <EmptyState icon={<StickyNote size={28} className="text-ink-muted" />} title="No notes yet" message="While reading, tap Add note to write thoughts on any chapter." action={{ href: "/bible/PSA/119", label: "Start reading" }} />
           ) : (
-            <div className="flex flex-col gap-2">
-              {notes.map(note => <NoteCard key={note.id} note={note} />)}
-            </div>
+            <>
+              <div className="relative mb-4">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" />
+                <input
+                  type="text"
+                  value={noteSearch}
+                  onChange={(e) => setNoteSearch(e.target.value)}
+                  placeholder="Search your notes…"
+                  className="w-full pl-9 pr-8 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-sm text-ink-primary placeholder:text-ink-muted outline-none focus:border-line"
+                />
+                {noteSearch && (
+                  <button onClick={() => setNoteSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted bg-transparent border-none cursor-pointer p-0.5">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {filteredNotes.length === 0 ? (
+                <div className="text-center py-12 text-ink-muted text-[13px]">
+                  No notes matching &ldquo;{noteSearch}&rdquo;
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {filteredNotes.map(note => <NoteCard key={note.id} note={note} query={noteSearch} />)}
+                </div>
+              )}
+            </>
           )
         )}
 
@@ -165,15 +196,39 @@ function BookmarkCard({ bookmark, onDelete }: { bookmark: BookmarkType; onDelete
   );
 }
 
-function NoteCard({ note }: { note: Props["notes"][0] }) {
-  const preview = note.content.length > 120 ? note.content.slice(0, 120) + "…" : note.content;
+function noteSnippet(content: string, query: string): string {
+  if (!query.trim()) return content.length > 120 ? content.slice(0, 120) + "…" : content;
+  const idx = content.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return content.length > 120 ? content.slice(0, 120) + "…" : content;
+  const start = Math.max(0, idx - 40);
+  const end = Math.min(content.length, idx + query.length + 80);
+  return (start > 0 ? "…" : "") + content.slice(start, end) + (end < content.length ? "…" : "");
+}
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-gold/30 text-ink-primary not-italic rounded-sm">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+function NoteCard({ note, query = "" }: { note: Props["notes"][0]; query?: string }) {
+  const snippet = noteSnippet(note.content, query);
   return (
     <Link href={`/bible/${note.book_id}/${note.chapter}?t=${note.translation}&note=1`} className="no-underline block bg-surface-raised border border-line-subtle rounded-[10px] px-4 py-[14px]">
       <div className="flex items-start justify-between gap-3 mb-2">
         <p className="text-sm font-semibold text-ink-primary m-0">{note.book_name} {note.chapter}</p>
         <span className="text-[11px] text-ink-muted shrink-0">{new Date(note.updated_at).toLocaleDateString()}</span>
       </div>
-      <p className="text-[13px] text-ink-secondary m-0 leading-[1.6] italic">&quot;{preview}&quot;</p>
+      <p className="text-[13px] text-ink-secondary m-0 leading-[1.6] italic">
+        &quot;<HighlightedText text={snippet} query={query} />&quot;
+      </p>
       <p className="text-[11px] text-ink-muted mt-2 mb-0 flex items-center gap-1">
         {note.translation} · Click to open <ChevronRight size={10} />
       </p>
