@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lora, Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -20,6 +21,13 @@ export const metadata: Metadata = {
   description:
     "A clean, focused Bible reading app. Read KJV and NKJV, keep bookmarks, and attach notes to any chapter.",
   keywords: ["Bible", "KJV", "NKJV", "Bible reader", "scripture"],
+  themeColor: "#0e0e10",
+  appleWebApp: {
+    capable: true,
+    title: "Psalm 119:9",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
 };
 
 export default function RootLayout({
@@ -41,6 +49,7 @@ export default function RootLayout({
         className={`${inter.variable} ${lora.variable} antialiased bg-surface text-ink-primary min-h-screen`}
       >
         <ThemeProvider>{children}</ThemeProvider>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
