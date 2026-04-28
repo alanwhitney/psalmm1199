@@ -1,7 +1,9 @@
 import Link from "next/link";
 import AppLogo from "@/components/AppLogo";
+import { getVerseOfTheDay } from "@/lib/verse-of-the-day";
 
 export default function HomePage() {
+  const verse = getVerseOfTheDay();
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 bg-surface relative">
       {/* Glow */}
@@ -28,10 +30,14 @@ export default function HomePage() {
         {/* Gold divider */}
         <div className="h-px w-24 mx-auto my-5 bg-gradient-to-r from-transparent via-gold-muted to-transparent" />
 
-        {/* Verse */}
-        <p className="text-ink-secondary text-[15px] mb-10 leading-[1.7] italic font-reading">
-          "Wherewithal shall a young man cleanse his way? By taking heed thereto according to thy word."
+        {/* Verse of the day */}
+        <p className="text-[10px] text-ink-muted uppercase tracking-[0.12em] font-semibold mb-3">
+          Verse of the day
         </p>
+        <p className="text-ink-secondary text-[15px] leading-[1.7] italic font-reading mb-2">
+          &ldquo;{verse.text}&rdquo;
+        </p>
+        <p className="text-[12px] text-gold mb-10">— {verse.ref}</p>
 
         {/* Buttons */}
         <div className="flex flex-col gap-2.5 items-center">
