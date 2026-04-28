@@ -56,6 +56,18 @@ export interface Note {
   updated_at: string;
 }
 
+// Prayer Journal types
+export interface Prayer {
+  id: string;
+  user_id: string;
+  title?: string;
+  content: string;
+  answered: boolean;
+  answered_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Highlight types
 export interface Highlight {
   id: string;

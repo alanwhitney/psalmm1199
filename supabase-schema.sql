@@ -123,3 +123,40 @@ create policy "Users can update their own highlights"
 create policy "Users can delete their own highlights"
   on highlights for delete
   using (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────
+-- Prayer Journal
+-- ─────────────────────────────────────────────
+create table if not exists prayers (
+  id          uuid default uuid_generate_v4() primary key,
+  user_id     uuid references auth.users(id) on delete cascade not null,
+  title       text,
+  content     text not null,
+  answered    boolean default false not null,
+  answered_at timestamptz,
+  created_at  timestamptz default now() not null,
+  updated_at  timestamptz default now() not null
+);
+
+alter table prayers enable row level security;
+
+create policy "Users can view their own prayers"
+  on prayers for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert their own prayers"
+  on prayers for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own prayers"
+  on prayers for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete their own prayers"
+  on prayers for delete
+  using (auth.uid() = user_id);
+
+create trigger prayers_updated_at
+  before update on prayers
+  for each row
+  execute function update_updated_at_column();

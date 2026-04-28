@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search, Sun, Moon, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search, Sun, Moon, Info, BookHeart } from "lucide-react";
 import AppLogo from "@/components/AppLogo";
 import { useTheme } from "@/components/ThemeProvider";
 import SearchPanel from "./SearchPanel";
@@ -124,6 +124,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
           {[
             { href: "/bookmarks", icon: <Bookmark size={13} />, label: "Bookmarks & Notes" },
             { href: "/bookmarks?tab=plan", icon: <CalendarDays size={13} />, label: "Reading Plan" },
+            { href: "/journal", icon: <BookHeart size={13} />, label: "Prayer Journal" },
             { href: "/about", icon: <Info size={13} />, label: "About" },
           ].map(({ href, icon, label }) => (
             <Link key={href} href={href} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-1 py-1.5 text-xs text-ink-secondary no-underline rounded-md">
