@@ -259,7 +259,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
             </button>
 
             {/* Listen button */}
-            {speech.state === "idle" && (
+            {speech.supported && speech.state === "idle" && (
               <button
                 onClick={speech.play}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-line-subtle bg-surface-raised text-ink-secondary"

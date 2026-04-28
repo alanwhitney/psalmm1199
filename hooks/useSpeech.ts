@@ -17,6 +17,8 @@ async function waitForVoices(synth: SpeechSynthesis): Promise<void> {
 }
 
 export function useSpeech(verses: Verse[]) {
+  const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+
   const [state, setState] = useState<SpeechState>("idle");
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
   const [rate, setRate] = useState(1);
@@ -107,5 +109,5 @@ export function useSpeech(verses: Verse[]) {
     }, 100);
   }, [state, verses]);
 
-  return { state, activeVerse, rate, changeRate, play, pause, resume, stop };
+  return { supported, state, activeVerse, rate, changeRate, play, pause, resume, stop };
 }
