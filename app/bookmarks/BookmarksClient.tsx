@@ -117,6 +117,12 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
               {label}{count !== undefined && <span className="text-[11px] font-normal ml-1">({count})</span>}
             </button>
           ))}
+          <Link
+            href="/journal"
+            className="no-underline px-4 py-2 text-[13px] font-semibold border-b-2 -mb-px text-ink-muted border-b-transparent"
+          >
+            Prayer Journal
+          </Link>
         </div>
 
         {/* Bookmarks tab */}
