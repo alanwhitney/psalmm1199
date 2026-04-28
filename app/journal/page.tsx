@@ -23,6 +23,7 @@ export default async function JournalPage() {
     <JournalClient
       prayers={prayers ?? []}
       userEmail={user.email ?? ""}
+      userId={user.id}
       backHref={backHref}
     />
   );

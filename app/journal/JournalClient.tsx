@@ -11,12 +11,13 @@ import AppLogo from "@/components/AppLogo";
 interface Props {
   prayers: Prayer[];
   userEmail: string;
+  userId: string;
   backHref: string;
 }
 
 const inputClass = "w-full px-3 py-2.5 bg-surface-overlay border border-line-subtle rounded-lg text-[13px] text-ink-primary placeholder:text-ink-muted outline-none focus:border-line box-border resize-none";
 
-export default function JournalClient({ prayers: initial, userEmail, backHref }: Props) {
+export default function JournalClient({ prayers: initial, userEmail, userId, backHref }: Props) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -42,7 +43,7 @@ export default function JournalClient({ prayers: initial, userEmail, backHref }:
     setSaving(true);
     const { data } = await supabase
       .from("prayers")
-      .insert({ title: title.trim() || null, content: content.trim() })
+      .insert({ user_id: userId, title: title.trim() || null, content: content.trim() })
       .select()
       .single();
     if (data) setPrayers([data, ...prayers]);
