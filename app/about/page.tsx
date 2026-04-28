@@ -64,7 +64,7 @@ export default async function AboutPage() {
           },
           {
             heading: "Features",
-            body: "Read any chapter across all 66 books of the Bible. Save multiple bookmarks with custom labels. Attach notes to any chapter. Follow reading plans including Bible in a Year, New Testament in 90 Days, Psalms & Proverbs in 30 Days, and Chronological Bible in a Year. Search the full Bible or within a chapter. Tap any verse to copy or share it."
+            body: "Read any chapter across all 66 books of the Bible. Save multiple bookmarks with custom labels. Attach notes to any chapter. Keep a prayer journal to log requests and mark them answered. Follow reading plans including Bible in a Year, New Testament in 90 Days, Psalms & Proverbs in 30 Days, and Chronological Bible in a Year. Search the full Bible or within a chapter. Tap any verse to copy or share it."
           },
           {
             heading: "Your data",
