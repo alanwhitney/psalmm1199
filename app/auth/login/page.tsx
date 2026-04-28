@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import AppLogo from "@/components/AppLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getLastPositionUrl } from "@/lib/last-position";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
@@ -42,9 +42,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="no-underline inline-flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-surface-raised border border-line-subtle flex items-center justify-center">
-              <BookOpen size={20} className="text-gold" />
-            </div>
+            <AppLogo className="w-12 h-12 rounded-xl" />
             <span className="text-xs text-ink-muted">Psalm 119:9</span>
           </Link>
           <h1 className="text-xl font-semibold text-ink-primary mt-4 mb-1">Welcome back</h1>

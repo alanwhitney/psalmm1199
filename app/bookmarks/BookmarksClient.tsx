@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, Bookmark, StickyNote, Trash2, LogOut, ChevronRight, ArrowLeft, CalendarDays, Search, X, ChevronsRight } from "lucide-react";
+import { Bookmark, StickyNote, Trash2, LogOut, ChevronRight, ArrowLeft, CalendarDays, Search, X, ChevronsRight } from "lucide-react";
+import AppLogo from "@/components/AppLogo";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
@@ -83,7 +84,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
           </Link>
           <div className="w-px h-4 bg-line-subtle" />
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-gold" />
+            <AppLogo className="w-5 h-5 rounded" />
             <span className="text-[13px] font-semibold text-ink-primary">Psalm 119:9</span>
           </div>
         </div>

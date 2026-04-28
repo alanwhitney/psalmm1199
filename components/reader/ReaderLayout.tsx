@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search, Sun, Moon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search, Sun, Moon, Info } from "lucide-react";
+import AppLogo from "@/components/AppLogo";
 import { useTheme } from "@/components/ThemeProvider";
 import SearchPanel from "./SearchPanel";
 import { Book, Translation } from "@/types";
@@ -60,7 +61,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
       {/* Logo */}
       <div className="flex items-center justify-between p-4 border-b border-b-line-subtle">
         <Link href="/" className="flex items-center gap-2 no-underline">
-          <BookOpen size={18} className="text-gold" />
+          <AppLogo className="w-5 h-5 rounded" />
           <span className="text-[13px] font-semibold text-ink-primary tracking-[0.03em]">Psalm 119:9</span>
         </Link>
         {!isDesktop && (
@@ -123,7 +124,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
           {[
             { href: "/bookmarks", icon: <Bookmark size={13} />, label: "Bookmarks & Notes" },
             { href: "/bookmarks?tab=plan", icon: <CalendarDays size={13} />, label: "Reading Plan" },
-            { href: "/about", icon: <BookOpen size={13} />, label: "About" },
+            { href: "/about", icon: <Info size={13} />, label: "About" },
           ].map(({ href, icon, label }) => (
             <Link key={href} href={href} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-1 py-1.5 text-xs text-ink-secondary no-underline rounded-md">
               <span className="text-gold">{icon}</span>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import AppLogo from "@/components/AppLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getLastPositionUrl } from "@/lib/last-position";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
@@ -55,9 +55,7 @@ export default function SignupPage() {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center px-4">
         <div className="text-center max-w-[400px]">
-          <div className="w-12 h-12 rounded-xl bg-gold/[10%] border border-gold/40 flex items-center justify-center mx-auto mb-4">
-            <BookOpen size={20} className="text-gold" />
-          </div>
+          <AppLogo className="w-12 h-12 rounded-xl mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-ink-primary mb-2">Check your email</h2>
           <p className="text-sm text-ink-secondary leading-[1.6] mb-6">
             We sent a confirmation link to <strong className="text-ink-primary">{email}</strong>. Click it to activate your account.
@@ -76,9 +74,7 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="no-underline inline-flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-surface-raised border border-line-subtle flex items-center justify-center">
-              <BookOpen size={20} className="text-gold" />
-            </div>
+            <AppLogo className="w-12 h-12 rounded-xl" />
             <span className="text-xs text-ink-muted">Psalm 119:9</span>
           </Link>
           <h1 className="text-xl font-semibold text-ink-primary mt-4 mb-1">Create an account</h1>
