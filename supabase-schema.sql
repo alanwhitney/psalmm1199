@@ -16,7 +16,8 @@ create table if not exists bookmarks (
   verse       integer,                -- optional verse-level bookmark
   translation text not null default 'KJV',
   label       text,                   -- user-supplied name, e.g. "Morning reading"
-  created_at  timestamptz default now() not null
+  created_at  timestamptz default now() not null,
+  sorted_at   timestamptz default now() not null  -- bumped on user edits, but NOT on chapter advance
 );
 
 -- Row Level Security

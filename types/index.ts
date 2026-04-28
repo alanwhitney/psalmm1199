@@ -40,6 +40,7 @@ export interface Bookmark {
   translation: Translation;
   label?: string;
   created_at: string;
+  sorted_at: string;
 }
 
 // Note types

@@ -19,7 +19,7 @@ export default async function BookmarksPage() {
     { data: userPlans },
     { data: completions },
   ] = await Promise.all([
-    supabase.from("bookmarks").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabase.from("bookmarks").select("*").eq("user_id", user.id).order("sorted_at", { ascending: false }),
     supabase.from("notes").select("id, book_id, book_name, chapter, translation, updated_at, content").eq("user_id", user.id).order("updated_at", { ascending: false }),
     supabase.from("user_reading_plans").select("*").eq("user_id", user.id),
     supabase.from("plan_completions").select("plan_id, day").eq("user_id", user.id),
