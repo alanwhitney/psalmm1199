@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Check, Trash2, X, BookHeart, LogOut } from "lucide-react";
+import { ArrowLeft, Plus, Check, Trash2, X, BookHeart, LogOut, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Prayer } from "@/types";
 import AppLogo from "@/components/AppLogo";
@@ -32,6 +32,7 @@ export default function JournalClient({ prayers: initial, userEmail, userId, bac
   const [editContent, setEditContent] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "answered">("all");
+  const [search, setSearch] = useState("");
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -82,9 +83,12 @@ export default function JournalClient({ prayers: initial, userEmail, userId, bac
     setEditingId(null);
   }
 
-  const filtered = prayers.filter(p =>
-    filter === "all" ? true : filter === "answered" ? p.answered : !p.answered
-  );
+  const q = search.toLowerCase();
+  const filtered = prayers.filter(p => {
+    const matchesFilter = filter === "all" ? true : filter === "answered" ? p.answered : !p.answered;
+    const matchesSearch = !q || p.content.toLowerCase().includes(q) || (p.title ?? "").toLowerCase().includes(q);
+    return matchesFilter && matchesSearch;
+  });
 
   const answeredCount = prayers.filter(p => p.answered).length;
 
@@ -160,6 +164,25 @@ export default function JournalClient({ prayers: initial, userEmail, userId, bac
                 {saving ? "Saving…" : "Save prayer"}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Search */}
+        {prayers.length > 0 && (
+          <div className="relative mb-4">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search prayers…"
+              className="w-full pl-9 pr-8 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-sm text-ink-primary placeholder:text-ink-muted outline-none focus:border-line"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted bg-transparent border-none cursor-pointer p-0.5">
+                <X size={13} />
+              </button>
+            )}
           </div>
         )}
 
