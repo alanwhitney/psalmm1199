@@ -15,10 +15,11 @@ interface Props {
   initialNote: Note | null;
   initialHighlights: Highlight[];
   openNote?: boolean;
+  bookmarkPositions?: Record<string, number>;
 }
 
 export default function ReaderLayoutWrapper({
-  book, chapter, translation, user, chapterData, initialBookmark, initialNote, initialHighlights, openNote
+  book, chapter, translation, user, chapterData, initialBookmark, initialNote, initialHighlights, openNote, bookmarkPositions = {}
 }: Props) {
   const [verses, setVerses] = useState<{ number: number; text: string }[]>([]);
   const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
@@ -31,6 +32,7 @@ export default function ReaderLayoutWrapper({
       user={user}
       verses={verses}
       onHighlightVerse={setHighlightVerse}
+      bookmarkPositions={bookmarkPositions}
     >
       <ChapterView
         book={book}

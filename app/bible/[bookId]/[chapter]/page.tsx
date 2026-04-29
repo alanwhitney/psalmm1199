@@ -40,15 +40,19 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   let note = null;
   let highlights: Highlight[] = [];
 
+  let bookmarkPositions: Record<string, number> = {};
+
   if (user) {
-    const [{ data: bm }, { data: nt }, { data: hl }] = await Promise.all([
+    const [{ data: bm }, { data: nt }, { data: hl }, { data: allBookmarks }] = await Promise.all([
       supabase.from("bookmarks").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
       supabase.from("notes").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
       supabase.from("highlights").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation),
+      supabase.from("bookmarks").select("book_id, chapter").eq("user_id", user.id),
     ]);
     bookmark = bm;
     note = nt;
     highlights = hl ?? [];
+    bookmarkPositions = Object.fromEntries((allBookmarks ?? []).map(b => [b.book_id, b.chapter]));
   }
 
   return (
@@ -62,6 +66,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       initialNote={note}
       initialHighlights={highlights}
       openNote={noteParam === "1"}
+      bookmarkPositions={bookmarkPositions}
     />
   );
 }
