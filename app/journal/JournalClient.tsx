@@ -1,24 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Check, Trash2, X, BookHeart, LogOut, Search } from "lucide-react";
+import { Plus, Check, Trash2, X, BookHeart, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Prayer } from "@/types";
-import AppLogo from "@/components/AppLogo";
 
 interface Props {
   prayers: Prayer[];
-  userEmail: string;
   userId: string;
-  backHref: string;
 }
 
 const inputClass = "w-full px-3 py-2.5 bg-surface-overlay border border-line-subtle rounded-lg text-[13px] text-ink-primary placeholder:text-ink-muted outline-none focus:border-line box-border resize-none";
 
-export default function JournalClient({ prayers: initial, userEmail, userId, backHref }: Props) {
-  const router = useRouter();
+export default function JournalClient({ prayers: initial, userId }: Props) {
   const supabase = createClient();
 
   const [prayers, setPrayers] = useState<Prayer[]>(initial);
@@ -33,11 +27,6 @@ export default function JournalClient({ prayers: initial, userEmail, userId, bac
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "answered">("all");
   const [search, setSearch] = useState("");
-
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push("/auth/login");
-  }
 
   async function addPrayer() {
     if (!content.trim()) return;
@@ -93,28 +82,7 @@ export default function JournalClient({ prayers: initial, userEmail, userId, bac
   const answeredCount = prayers.filter(p => p.answered).length;
 
   return (
-    <div className="min-h-screen bg-surface text-ink-primary">
-      {/* Header */}
-      <header className="bg-surface-raised border-b border-b-line-subtle px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <Link href={backHref} className="flex items-center gap-1.5 no-underline text-ink-muted text-[13px]">
-            <ArrowLeft size={15} /> Back to reading
-          </Link>
-          <div className="w-px h-4 bg-line-subtle" />
-          <div className="flex items-center gap-2">
-            <AppLogo className="w-5 h-5 rounded" />
-            <span className="text-[13px] font-semibold text-ink-primary">Prayer Journal</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-ink-muted hidden sm:block">{userEmail}</span>
-          <button onClick={handleSignOut} className="bg-transparent border-none cursor-pointer text-ink-muted flex items-center gap-1.5 text-xs p-0">
-            <LogOut size={13} /> Sign out
-          </button>
-        </div>
-      </header>
-
-      <div className="max-w-[680px] mx-auto py-8 px-4">
+    <div className="max-w-[680px] mx-auto py-8 px-4">
         {/* Stats row */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -347,7 +315,6 @@ export default function JournalClient({ prayers: initial, userEmail, userId, bac
         {filtered.length === 0 && prayers.length > 0 && (
           <p className="text-center text-sm text-ink-muted py-10">No {filter} prayers.</p>
         )}
-      </div>
     </div>
   );
 }

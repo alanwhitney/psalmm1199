@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { lastPositionUrl } from "@/lib/last-position";
 import BookmarksClient from "./BookmarksClient";
+import AppLayout from "@/components/AppLayout";
 
 export default async function BookmarksPage() {
   const supabase = await createServerSupabaseClient();
@@ -26,15 +27,15 @@ export default async function BookmarksPage() {
   ]);
 
   return (
-    <BookmarksClient
-      bookmarks={bookmarks ?? []}
-      notes={notes ?? []}
-      userEmail={user.email ?? ""}
-      userId={user.id}
-      userPlans={userPlans ?? []}
-      completions={completions ?? []}
-      backHref={backHref}
-    />
+    <AppLayout user={user} backHref={backHref} title="My Reading">
+      <BookmarksClient
+        bookmarks={bookmarks ?? []}
+        notes={notes ?? []}
+        userId={user.id}
+        userPlans={userPlans ?? []}
+        completions={completions ?? []}
+      />
+    </AppLayout>
   );
 }
 

@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Bookmark, StickyNote, Trash2, LogOut, ChevronRight, ArrowLeft, CalendarDays, Search, X, ChevronsRight } from "lucide-react";
-import AppLogo from "@/components/AppLogo";
+import { Bookmark, StickyNote, Trash2, ChevronRight, CalendarDays, Search, X, ChevronsRight } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
@@ -26,17 +24,14 @@ function nextBookmarkPosition(bookId: string, chapter: number): { bookId: string
 interface Props {
   bookmarks: BookmarkType[];
   notes: Pick<Note, "id" | "book_id" | "book_name" | "chapter" | "translation" | "updated_at" | "content">[];
-  userEmail: string;
   userId: string;
   userPlans: { id: string; plan_id: string; started_at: string; translation: string; active: boolean }[];
   completions: { plan_id: string; day: number }[];
-  backHref: string;
 }
 
 type Tab = "bookmarks" | "notes" | "plan";
 
-export default function BookmarksClient({ bookmarks: initial, notes, userEmail, userId, userPlans, completions, backHref }: Props) {
-  const router = useRouter();
+export default function BookmarksClient({ bookmarks: initial, notes, userId, userPlans, completions }: Props) {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) ?? "bookmarks");
@@ -62,12 +57,6 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
     setBookmarks(prev => prev.map(b => b.id === id ? { ...b, book_id: next.bookId, book_name: next.bookName, chapter: next.chapter } : b));
   }
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
-  }
-
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "bookmarks", label: "Bookmarks", count: bookmarks.length },
     { key: "notes", label: "Notes", count: notes.length },
@@ -75,28 +64,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
   ];
 
   return (
-    <div className="min-h-screen bg-surface text-ink-primary">
-      {/* Header */}
-      <header className="bg-surface-raised border-b border-b-line-subtle px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href={backHref} className="flex items-center gap-1.5 no-underline text-ink-muted text-[13px]">
-            <ArrowLeft size={15} /> Back to reading
-          </Link>
-          <div className="w-px h-4 bg-line-subtle" />
-          <div className="flex items-center gap-2">
-            <AppLogo className="w-5 h-5 rounded" />
-            <span className="text-[13px] font-semibold text-ink-primary">Psalm 119:9</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-ink-muted">{userEmail}</span>
-          <button onClick={handleSignOut} className="bg-transparent border-none cursor-pointer text-ink-muted flex items-center gap-1.5 text-xs p-0">
-            <LogOut size={14} /> Sign out
-          </button>
-        </div>
-      </header>
-
-      <div className="max-w-[720px] mx-auto py-10 px-6">
+    <div className="max-w-[720px] mx-auto py-10 px-6">
         <h1 className="text-2xl font-light text-ink-primary mb-2 font-reading">
           My Reading
         </h1>
@@ -179,7 +147,6 @@ export default function BookmarksClient({ bookmarks: initial, notes, userEmail, 
             defaultTranslation="KJV"
           />
         )}
-      </div>
     </div>
   );
 }

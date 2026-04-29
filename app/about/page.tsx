@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import AppLayout from "@/components/AppLayout";
 import AppLogo from "@/components/AppLogo";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { lastPositionUrl } from "@/lib/last-position";
 
@@ -9,24 +10,12 @@ export const metadata = {
 };
 
 export default async function AboutPage() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const cookieStore = await cookies();
   const backHref = lastPositionUrl(cookieStore.get("last_position")?.value);
   return (
-    <div className="min-h-screen bg-surface text-ink-primary">
-      {/* Header */}
-      <header className="bg-surface-raised border-b border-b-line-subtle px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href={backHref} className="flex items-center gap-1.5 no-underline text-ink-muted text-[13px]">
-            <ArrowLeft size={15} /> Back to reading
-          </Link>
-          <div className="w-px h-4 bg-line-subtle" />
-          <div className="flex items-center gap-2">
-            <AppLogo className="w-5 h-5 rounded" />
-            <span className="text-[13px] font-semibold text-ink-primary">Psalm 119:9</span>
-          </div>
-        </div>
-      </header>
-
+    <AppLayout user={user} backHref={backHref} title="About">
       <div className="max-w-[640px] mx-auto py-[60px] px-6">
         {/* Icon */}
         <div className="flex justify-center mb-8">
@@ -123,6 +112,6 @@ export default async function AboutPage() {
           psalm1199.com
         </p>
       </div>
-    </div>
+    </AppLayout>
   );
 }

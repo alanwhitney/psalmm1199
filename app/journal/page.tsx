@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { lastPositionUrl } from "@/lib/last-position";
 import JournalClient from "./JournalClient";
+import AppLayout from "@/components/AppLayout";
 
 export default async function JournalPage() {
   const supabase = await createServerSupabaseClient();
@@ -20,12 +21,9 @@ export default async function JournalPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <JournalClient
-      prayers={prayers ?? []}
-      userEmail={user.email ?? ""}
-      userId={user.id}
-      backHref={backHref}
-    />
+    <AppLayout user={user} backHref={backHref} title="Prayer Journal">
+      <JournalClient prayers={prayers ?? []} userId={user.id} />
+    </AppLayout>
   );
 }
 
