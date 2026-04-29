@@ -65,14 +65,17 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   // Strong's
   const [strongsOpen, setStrongsOpen] = useState<number | null>(null);
-  const [strongsCache, setStrongsCache] = useState<Record<number, { word: string; strongs: string; lemma: string; def: string; xlit?: string }[]>>({});
+  const [strongsCache, setStrongsCache] = useState<Record<number, { word: string; strongs: string; lemma: string; def: string; xlit?: string; derivation?: string }[]>>({});
   const [strongsLoading, setStrongsLoading] = useState(false);
   const [activeStrongsKey, setActiveStrongsKey] = useState<string | null>(null);
+  const [linkedEntry, setLinkedEntry] = useState<{ id: string; lemma?: string; def?: string; xlit?: string; derivation?: string } | null>(null);
+  const [linkedEntryLoading, setLinkedEntryLoading] = useState(false);
 
   async function loadStrongs(verseNum: number) {
-    if (strongsOpen === verseNum) { setStrongsOpen(null); setActiveStrongsKey(null); return; }
+    if (strongsOpen === verseNum) { setStrongsOpen(null); setActiveStrongsKey(null); setLinkedEntry(null); return; }
     setStrongsOpen(verseNum);
     setActiveStrongsKey(null);
+    setLinkedEntry(null);
     if (strongsCache[verseNum]) return;
     setStrongsLoading(true);
     try {
@@ -82,6 +85,37 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     } finally {
       setStrongsLoading(false);
     }
+  }
+
+  async function loadLinkedEntry(id: string) {
+    if (linkedEntry?.id === id) { setLinkedEntry(null); return; }
+    setLinkedEntryLoading(true);
+    try {
+      const res = await fetch(`/api/strongs/entry?id=${id}`);
+      const data = await res.json();
+      setLinkedEntry({ id, ...data });
+    } finally {
+      setLinkedEntryLoading(false);
+    }
+  }
+
+  function renderDerivation(text: string) {
+    const parts = text.split(/([HG]\d+)/g);
+    return parts.map((part, i) =>
+      /^[HG]\d+$/.test(part) ? (
+        <button
+          key={i}
+          onClick={() => loadLinkedEntry(part)}
+          className={`font-mono text-[10px] cursor-pointer border-none bg-transparent px-0 underline decoration-dotted ${
+            linkedEntry?.id === part ? "text-gold" : "text-gold-muted"
+          }`}
+        >
+          {part}
+        </button>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
   }
 
   function selectVerse(num: number) {
@@ -502,6 +536,24 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                                       {entry.xlit && <span className="text-[10px] text-ink-muted italic">{entry.xlit}</span>}
                                     </div>
                                     {entry.def && <p className="text-[11px] text-ink-secondary mt-0.5 m-0 leading-snug">{entry.def}</p>}
+                                    {entry.derivation && (
+                                      <p className="text-[10px] text-ink-muted mt-1 m-0 leading-snug">
+                                        {renderDerivation(entry.derivation)}
+                                      </p>
+                                    )}
+                                    {linkedEntryLoading && (
+                                      <p className="text-[10px] text-ink-muted mt-1.5 m-0">Loading…</p>
+                                    )}
+                                    {linkedEntry && !linkedEntryLoading && (
+                                      <div className="mt-1.5 pt-1.5 border-t border-line-subtle/60">
+                                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                                          <span className="text-[9px] font-mono text-gold">{linkedEntry.id}</span>
+                                          {linkedEntry.lemma && <span className="text-[11px] font-semibold text-ink-primary">{linkedEntry.lemma}</span>}
+                                          {linkedEntry.xlit && <span className="text-[9px] text-ink-muted italic">{linkedEntry.xlit}</span>}
+                                        </div>
+                                        {linkedEntry.def && <p className="text-[10px] text-ink-secondary mt-0.5 m-0 leading-snug">{linkedEntry.def}</p>}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })()}

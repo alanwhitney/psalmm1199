@@ -8,6 +8,7 @@ export interface WordStrongs {
   lemma: string;
   def: string;
   xlit?: string;
+  derivation?: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
       lemma: entry?.lemma ?? "",
       def: entry?.def ?? "",
       xlit: entry?.xlit,
+      derivation: entry?.derivation,
     });
   }
 

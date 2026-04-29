@@ -5,6 +5,7 @@ export interface StrongsEntry {
   lemma: string;
   def?: string;
   xlit?: string;
+  derivation?: string;
 }
 
 export function lookupStrongs(id: string): StrongsEntry | null {
