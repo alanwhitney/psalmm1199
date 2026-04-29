@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search, Sun, Moon, Info, BookHeart } from "lucide-react";
@@ -222,8 +222,12 @@ function BookItem({ b, active, activeChapter, onSelect, progress }: {
   b: Book; active: boolean; activeChapter: number | null; onSelect: (ch: number) => void; progress: number | null;
 }) {
   const [expanded, setExpanded] = useState(active);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (active) ref.current?.scrollIntoView({ block: "center", behavior: "instant" });
+  }, []);
   return (
-    <div>
+    <div ref={ref}>
       <button
         onClick={() => setExpanded(e => !e)}
         className={`w-full text-left px-4 py-1.5 bg-transparent border-none cursor-pointer text-[13px] flex flex-col gap-0.5 ${active ? "text-gold" : "text-ink-secondary"}`}
