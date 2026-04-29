@@ -238,7 +238,7 @@ function BookItem({ b, active, activeChapter, onSelect, progress }: {
         </div>
         {progress !== null && (
           <div className="w-full h-[2px] rounded-full bg-line-subtle overflow-hidden">
-            <div className="h-full rounded-full bg-gold/60" style={{ width: `${Math.min(progress * 100, 100)}%` }} />
+            <div className="h-full rounded-full" style={{ width: `${Math.min(progress * 100, 100)}%`, backgroundColor: "var(--gold)", opacity: 0.7 }} />
           </div>
         )}
       </button>
