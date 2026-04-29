@@ -34,8 +34,6 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [readProgress, setReadProgress] = useState(0);
-  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
@@ -203,19 +201,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
               : <span className="p-1.5 opacity-20 flex"><ChevronRight size={16} /></span>}
           </div>
         </header>
-        <main
-          ref={mainRef}
-          className="flex-1 overflow-y-auto"
-          onScroll={() => {
-            const el = mainRef.current;
-            if (!el) return;
-            const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
-            setReadProgress(isNaN(pct) ? 0 : Math.min(pct, 1));
-          }}
-        >{children}</main>
-        <div className="h-[3px] bg-line-subtle shrink-0">
-          <div className="h-full transition-[width] duration-75" style={{ width: `${readProgress * 100}%`, backgroundColor: "var(--gold)", opacity: 0.8 }} />
-        </div>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
 
       {/* Search panel */}

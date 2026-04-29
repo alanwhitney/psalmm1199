@@ -195,10 +195,23 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const prevChapter = chapter > 1 ? chapter - 1 : null;
   const nextChapter = chapter < book.chapters ? chapter + 1 : null;
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [readProgress, setReadProgress] = useState(0);
+
   return (
     <div className="flex h-full">
       {/* Reading pane */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-h-0">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto"
+        onScroll={() => {
+          const el = scrollRef.current;
+          if (!el) return;
+          const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
+          setReadProgress(isNaN(pct) ? 0 : Math.min(pct, 1));
+        }}
+      >
         <div className="max-w-[680px] mx-auto py-12 px-8">
 
           {/* Chapter heading */}
@@ -418,6 +431,10 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
             ) : <span />}
           </div>
         </div>
+      </div>
+      <div className="h-[3px] bg-line-subtle shrink-0">
+        <div className="h-full" style={{ width: `${readProgress * 100}%`, backgroundColor: "var(--gold)", opacity: 0.8, transition: "width 75ms linear" }} />
+      </div>
       </div>
 
       {/* Notes panel */}
