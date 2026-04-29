@@ -61,6 +61,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   }, [externalHighlight]);
 
   const [copied, setCopied] = useState(false);
+  const highlightInFlight = useRef(false);
 
   function selectVerse(num: number) {
     setSelectedVerse(prev => prev === num ? null : num);
@@ -77,7 +78,20 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   }
 
   async function copyVerse(num: number) {
-    await navigator.clipboard.writeText(formatShareText(num));
+    const text = formatShareText(num);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for browsers that deny clipboard permission
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -93,17 +107,23 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   async function toggleHighlight(verseNum: number, colorId: string) {
     if (!user) { router.push("/auth/login"); return; }
-    if (highlights[verseNum] === colorId) {
-      await supabase.from("highlights").delete()
-        .eq("user_id", user.id).eq("book_id", book.id)
-        .eq("chapter", chapter).eq("verse", verseNum).eq("translation", translation);
-      setHighlights((prev) => { const next = { ...prev }; delete next[verseNum]; return next; });
-    } else {
-      await supabase.from("highlights").upsert(
-        { user_id: user.id, book_id: book.id, chapter, verse: verseNum, translation, color: colorId },
-        { onConflict: "user_id,book_id,chapter,verse,translation" }
-      );
-      setHighlights((prev) => ({ ...prev, [verseNum]: colorId }));
+    if (highlightInFlight.current) return;
+    highlightInFlight.current = true;
+    try {
+      if (highlights[verseNum] === colorId) {
+        const { error } = await supabase.from("highlights").delete()
+          .eq("user_id", user.id).eq("book_id", book.id)
+          .eq("chapter", chapter).eq("verse", verseNum).eq("translation", translation);
+        if (!error) setHighlights((prev) => { const next = { ...prev }; delete next[verseNum]; return next; });
+      } else {
+        const { error } = await supabase.from("highlights").upsert(
+          { user_id: user.id, book_id: book.id, chapter, verse: verseNum, translation, color: colorId },
+          { onConflict: "user_id,book_id,chapter,verse,translation" }
+        );
+        if (!error) setHighlights((prev) => ({ ...prev, [verseNum]: colorId }));
+      }
+    } finally {
+      highlightInFlight.current = false;
     }
   }
 
@@ -121,24 +141,21 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   async function toggleBookmark() {
     if (!user) { router.push("/auth/login"); return; }
     if (bookmark) {
-      await supabase.from("bookmarks").delete().eq("id", bookmark.id);
-      setBookmark(null);
-      setBookmarkLabel("");
+      const { error } = await supabase.from("bookmarks").delete().eq("id", bookmark.id);
+      if (!error) { setBookmark(null); setBookmarkLabel(""); }
     } else {
       const { data } = await supabase.from("bookmarks").insert({
         user_id: user.id, book_id: book.id, book_name: book.name,
         chapter, translation, label: "",
       }).select().single();
-      setBookmark(data);
-      setLabelEditing(true);
+      if (data) { setBookmark(data); setLabelEditing(true); }
     }
   }
 
   async function saveLabel() {
     if (!bookmark) return;
-    await supabase.from("bookmarks").update({ label: bookmarkLabel, sorted_at: new Date().toISOString() }).eq("id", bookmark.id);
-    setLabelEditing(false);
-    setBookmark({ ...bookmark, label: bookmarkLabel });
+    const { error } = await supabase.from("bookmarks").update({ label: bookmarkLabel, sorted_at: new Date().toISOString() }).eq("id", bookmark.id);
+    if (!error) { setLabelEditing(false); setBookmark({ ...bookmark, label: bookmarkLabel }); }
   }
 
   const saveNote = useCallback(async (content?: string) => {
@@ -147,14 +164,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     if (!textToSave.trim() && !noteRef.current) return;
     setNoteSaving(true);
     if (noteRef.current) {
-      const { data } = await supabase.from("notes").update({ content: textToSave }).eq("id", noteRef.current.id).select().single();
-      if (data) { setNote(data); noteRef.current = data; }
+      const { data, error } = await supabase.from("notes").update({ content: textToSave }).eq("id", noteRef.current.id).select().single();
+      if (!error && data) { setNote(data); noteRef.current = data; }
     } else {
-      const { data } = await supabase.from("notes").insert({
+      const { data, error } = await supabase.from("notes").insert({
         user_id: user.id, book_id: book.id, book_name: book.name,
         chapter, translation, content: textToSave,
       }).select().single();
-      if (data) { setNote(data); noteRef.current = data; }
+      if (!error && data) { setNote(data); noteRef.current = data; }
     }
     setNoteSaving(false);
     setNoteSaved(true);
@@ -169,10 +186,8 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   async function deleteNote() {
     if (!note) return;
-    await supabase.from("notes").delete().eq("id", note.id);
-    setNote(null);
-    setNoteContent("");
-    setNoteOpen(false);
+    const { error } = await supabase.from("notes").delete().eq("id", note.id);
+    if (!error) { setNote(null); setNoteContent(""); setNoteOpen(false); }
   }
 
   if (!chapterData) {
@@ -329,7 +344,10 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                 <div key={verse.number}>
                   <p
                     id={`v${verse.number}`}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => selectVerse(verse.number)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectVerse(verse.number); } }}
                     className={`m-0 mb-1 px-2 py-1 rounded-md cursor-pointer border-l-2 transition-colors ${
                       isSelected ? "border-l-gold" : isNarrating ? "border-l-gold" : "border-l-transparent"
                     }`}

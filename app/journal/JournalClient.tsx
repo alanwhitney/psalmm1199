@@ -31,27 +31,29 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
   async function addPrayer() {
     if (!content.trim()) return;
     setSaving(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("prayers")
       .insert({ user_id: userId, title: title.trim() || null, content: content.trim() })
       .select()
       .single();
-    if (data) setPrayers([data, ...prayers]);
+    setSaving(false);
+    if (error || !data) return;
+    setPrayers([data, ...prayers]);
     setTitle("");
     setContent("");
     setComposing(false);
-    setSaving(false);
   }
 
   async function toggleAnswered(prayer: Prayer) {
     const answered = !prayer.answered;
     const answered_at = answered ? new Date().toISOString() : null;
-    await supabase.from("prayers").update({ answered, answered_at }).eq("id", prayer.id);
-    setPrayers(prayers.map(p => p.id === prayer.id ? { ...p, answered, answered_at: answered_at ?? undefined } : p));
+    const { error } = await supabase.from("prayers").update({ answered, answered_at }).eq("id", prayer.id);
+    if (!error) setPrayers(prayers.map(p => p.id === prayer.id ? { ...p, answered, answered_at: answered_at ?? undefined } : p));
   }
 
   async function deletePrayer(id: string) {
-    await supabase.from("prayers").delete().eq("id", id);
+    const { error } = await supabase.from("prayers").delete().eq("id", id);
+    if (error) { setConfirmDeleteId(null); return; }
     setPrayers(prayers.filter(p => p.id !== id));
     setConfirmDeleteId(null);
     if (expandedId === id) setExpandedId(null);
@@ -67,9 +69,11 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
   async function saveEdit(prayer: Prayer) {
     if (!editContent.trim()) return;
     const updates = { title: editTitle.trim() || null, content: editContent.trim() };
-    await supabase.from("prayers").update(updates).eq("id", prayer.id);
-    setPrayers(prayers.map(p => p.id === prayer.id ? { ...p, ...updates, title: updates.title ?? undefined } : p));
-    setEditingId(null);
+    const { error } = await supabase.from("prayers").update(updates).eq("id", prayer.id);
+    if (!error) {
+      setPrayers(prayers.map(p => p.id === prayer.id ? { ...p, ...updates, title: updates.title ?? undefined } : p));
+      setEditingId(null);
+    }
   }
 
   const q = search.toLowerCase();
