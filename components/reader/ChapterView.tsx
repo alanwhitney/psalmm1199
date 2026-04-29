@@ -63,6 +63,27 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [copied, setCopied] = useState(false);
   const highlightInFlight = useRef(false);
 
+  // Strong's
+  const [strongsOpen, setStrongsOpen] = useState<number | null>(null);
+  const [strongsCache, setStrongsCache] = useState<Record<number, { word: string; strongs: string; lemma: string; def: string; xlit?: string }[]>>({});
+  const [strongsLoading, setStrongsLoading] = useState(false);
+  const [activeStrongsKey, setActiveStrongsKey] = useState<string | null>(null);
+
+  async function loadStrongs(verseNum: number) {
+    if (strongsOpen === verseNum) { setStrongsOpen(null); setActiveStrongsKey(null); return; }
+    setStrongsOpen(verseNum);
+    setActiveStrongsKey(null);
+    if (strongsCache[verseNum]) return;
+    setStrongsLoading(true);
+    try {
+      const res = await fetch(`/api/strongs?bookId=${book.id}&chapter=${chapter}&verse=${verseNum}`);
+      const data = await res.json();
+      setStrongsCache((prev) => ({ ...prev, [verseNum]: data.words ?? [] }));
+    } finally {
+      setStrongsLoading(false);
+    }
+  }
+
   function selectVerse(num: number) {
     setSelectedVerse(prev => prev === num ? null : num);
     setCopied(false);
@@ -428,6 +449,66 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                           </button>
                         )}
                       </div>
+
+                      {/* Strong's row — KJV/NKJV only */}
+                      {(translation === "KJV" || translation === "NKJV") && (
+                        <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
+                          <button
+                            onClick={() => loadStrongs(verse.number)}
+                            className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none"
+                          >
+                            {strongsOpen === verse.number ? "▲ Hide Strong's" : "▼ Strong's"}
+                          </button>
+
+                          {strongsOpen === verse.number && (
+                            <div className="mt-2">
+                              {strongsLoading && !strongsCache[verse.number] ? (
+                                <p className="text-[10px] text-ink-muted m-0">Loading…</p>
+                              ) : (strongsCache[verse.number] ?? []).length === 0 ? (
+                                <p className="text-[10px] text-ink-muted m-0">No data for this verse.</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-1">
+                                  {(strongsCache[verse.number] ?? []).map((w, i) => {
+                                    const key = `${verse.number}-${i}`;
+                                    const isActive = activeStrongsKey === key;
+                                    return (
+                                      <button
+                                        key={key}
+                                        onClick={() => setActiveStrongsKey(isActive ? null : key)}
+                                        className={`flex flex-col items-start px-1.5 py-0.5 rounded text-left cursor-pointer border transition-colors ${
+                                          isActive
+                                            ? "border-gold bg-gold/[8%]"
+                                            : "border-line-subtle bg-surface-overlay"
+                                        }`}
+                                      >
+                                        <span className="text-[10px] text-ink-primary leading-tight">{w.word}</span>
+                                        <span className="text-[9px] font-mono text-gold-muted">{w.strongs}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Definition card */}
+                              {activeStrongsKey && activeStrongsKey.startsWith(`${verse.number}-`) && (() => {
+                                const idx = parseInt(activeStrongsKey.split("-")[1], 10);
+                                const entry = strongsCache[verse.number]?.[idx];
+                                if (!entry) return null;
+                                return (
+                                  <div className="mt-2 p-2 bg-surface-overlay border border-gold-muted/30 rounded-md">
+                                    <div className="flex items-baseline gap-2 flex-wrap">
+                                      <span className="text-[10px] font-mono text-gold">{entry.strongs}</span>
+                                      {entry.lemma && <span className="text-[13px] font-semibold text-ink-primary">{entry.lemma}</span>}
+                                      {entry.xlit && <span className="text-[10px] text-ink-muted italic">{entry.xlit}</span>}
+                                    </div>
+                                    {entry.def && <p className="text-[11px] text-ink-secondary mt-0.5 m-0 leading-snug">{entry.def}</p>}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
