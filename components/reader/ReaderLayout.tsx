@@ -20,12 +20,13 @@ interface ReaderLayoutProps {
   verses?: { number: number; text: string }[];
   onHighlightVerse?: (verse: number | null) => void;
   bookmarkPositions?: Record<string, number>;
+  noteChapters?: Record<string, number[]>;
 }
 
 const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV"];
 const DESKTOP_BREAKPOINT = 1024;
 
-export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse, bookmarkPositions = {} }: ReaderLayoutProps) {
+export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {} }: ReaderLayoutProps) {
   const router = useRouter();
   const supabase = createClient();
   const { theme, mounted, toggle, fontSize, incFontSize, decFontSize } = useTheme();
@@ -33,6 +34,8 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [readProgress, setReadProgress] = useState(0);
+  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
@@ -115,7 +118,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
               const progressChapter = b.id === book.id ? chapter : bookmarkPositions[b.id] ?? null;
               const progress = progressChapter !== null ? progressChapter / b.chapters : null;
               return (
-                <BookItem key={b.id} b={b} active={b.id === book.id} activeChapter={b.id === book.id ? chapter : null} onSelect={(ch) => goTo(b.id, ch)} progress={progress} />
+                <BookItem key={b.id} b={b} active={b.id === book.id} activeChapter={b.id === book.id ? chapter : null} onSelect={(ch) => goTo(b.id, ch)} progress={progress} notedChapters={noteChapters[b.id] ?? []} />
               );
             })}
           </div>
@@ -200,7 +203,19 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
               : <span className="p-1.5 opacity-20 flex"><ChevronRight size={16} /></span>}
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main
+          ref={mainRef}
+          className="flex-1 overflow-y-auto"
+          onScroll={() => {
+            const el = mainRef.current;
+            if (!el) return;
+            const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
+            setReadProgress(isNaN(pct) ? 0 : Math.min(pct, 1));
+          }}
+        >{children}</main>
+        <div className="h-[3px] bg-line-subtle shrink-0">
+          <div className="h-full transition-[width] duration-75" style={{ width: `${readProgress * 100}%`, backgroundColor: "var(--gold)", opacity: 0.8 }} />
+        </div>
       </div>
 
       {/* Search panel */}
@@ -218,8 +233,8 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   );
 }
 
-function BookItem({ b, active, activeChapter, onSelect, progress }: {
-  b: Book; active: boolean; activeChapter: number | null; onSelect: (ch: number) => void; progress: number | null;
+function BookItem({ b, active, activeChapter, onSelect, progress, notedChapters }: {
+  b: Book; active: boolean; activeChapter: number | null; onSelect: (ch: number) => void; progress: number | null; notedChapters: number[];
 }) {
   const [expanded, setExpanded] = useState(active);
   const ref = useRef<HTMLDivElement>(null);
@@ -244,11 +259,19 @@ function BookItem({ b, active, activeChapter, onSelect, progress }: {
       </button>
       {expanded && (
         <div className="px-4 pb-2 pt-1 flex flex-wrap gap-1">
-          {Array.from({ length: b.chapters }, (_, i) => i + 1).map((ch) => (
-            <button key={ch} onClick={() => onSelect(ch)} className={`w-7 h-7 text-[11px] rounded cursor-pointer font-semibold border-none ${
-              activeChapter === ch ? "bg-gold text-surface" : "bg-surface-overlay text-ink-secondary"
-            }`}>{ch}</button>
-          ))}
+          {Array.from({ length: b.chapters }, (_, i) => i + 1).map((ch) => {
+            const hasNote = notedChapters.includes(ch);
+            return (
+              <button key={ch} onClick={() => onSelect(ch)} className={`relative w-7 h-7 text-[11px] rounded cursor-pointer font-semibold border-none ${
+                activeChapter === ch ? "bg-gold text-surface" : "bg-surface-overlay text-ink-secondary"
+              }`}>
+                {ch}
+                {hasNote && (
+                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--gold)" }} />
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

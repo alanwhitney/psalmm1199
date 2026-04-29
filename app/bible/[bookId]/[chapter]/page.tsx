@@ -41,18 +41,23 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   let highlights: Highlight[] = [];
 
   let bookmarkPositions: Record<string, number> = {};
+  let noteChapters: Record<string, number[]> = {};
 
   if (user) {
-    const [{ data: bm }, { data: nt }, { data: hl }, { data: allBookmarks }] = await Promise.all([
+    const [{ data: bm }, { data: nt }, { data: hl }, { data: allBookmarks }, { data: allNotes }] = await Promise.all([
       supabase.from("bookmarks").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
       supabase.from("notes").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
       supabase.from("highlights").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation),
       supabase.from("bookmarks").select("book_id, chapter").eq("user_id", user.id),
+      supabase.from("notes").select("book_id, chapter").eq("user_id", user.id),
     ]);
     bookmark = bm;
     note = nt;
     highlights = hl ?? [];
     bookmarkPositions = Object.fromEntries((allBookmarks ?? []).map(b => [b.book_id, b.chapter]));
+    for (const n of allNotes ?? []) {
+      (noteChapters[n.book_id] ??= []).push(n.chapter);
+    }
   }
 
   return (
@@ -67,6 +72,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       initialHighlights={highlights}
       openNote={noteParam === "1"}
       bookmarkPositions={bookmarkPositions}
+      noteChapters={noteChapters}
     />
   );
 }
