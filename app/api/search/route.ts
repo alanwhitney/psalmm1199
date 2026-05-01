@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Translation } from "@/types";
+import { BIBLE_BOOKS } from "@/lib/books";
+
+const BOOK_ORDER = Object.fromEntries(BIBLE_BOOKS.map((b, i) => [b.id, i]));
 
 const TRANSLATION_IDS: Record<string, string> = {
   KJV: process.env.BIBLE_API_KJV_ID || "de4e12af7f28f599-02",
@@ -57,6 +60,13 @@ export async function GET(request: NextRequest) {
         chapter,
         verse: verseNum,
       };
+    });
+
+    results.sort((a: { bookId: string; chapter: number; verse: number }, b: { bookId: string; chapter: number; verse: number }) => {
+      const bookDiff = (BOOK_ORDER[a.bookId] ?? 999) - (BOOK_ORDER[b.bookId] ?? 999);
+      if (bookDiff !== 0) return bookDiff;
+      if (a.chapter !== b.chapter) return a.chapter - b.chapter;
+      return a.verse - b.verse;
     });
 
     return NextResponse.json({ results });
