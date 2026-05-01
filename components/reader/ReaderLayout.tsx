@@ -29,11 +29,12 @@ const DESKTOP_BREAKPOINT = 1024;
 export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {} }: ReaderLayoutProps) {
   const router = useRouter();
   const supabase = createClient();
-  const { theme, mounted, toggle, fontSize, incFontSize, decFontSize } = useTheme();
+  const { theme, mounted, toggle, fontSize, incFontSize, decFontSize, showSections, toggleShowSections } = useTheme();
 
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [displayOpen, setDisplayOpen] = useState(false);
 
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
@@ -87,24 +88,50 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
         </div>
       </div>
 
-      {/* Display */}
-      <div className="px-4 py-3 border-b border-b-line-subtle">
-        <p className="text-[10px] uppercase tracking-[0.1em] text-ink-muted mb-2 font-semibold">Display</p>
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1.5">
-            <button onClick={() => { if (theme !== "light") toggle(); }} className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md cursor-pointer ${theme === "light" ? "bg-gold text-surface border-none" : "bg-surface-overlay text-ink-secondary border border-line-subtle"}`}>
-              <Sun size={11} /> Light
-            </button>
-            <button onClick={() => { if (theme !== "dark") toggle(); }} className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md cursor-pointer ${theme === "dark" ? "bg-gold text-surface border-none" : "bg-surface-overlay text-ink-secondary border border-line-subtle"}`}>
-              <Moon size={11} /> Dark
-            </button>
+      {/* Display (collapsible) */}
+      <div className="border-b border-b-line-subtle">
+        <button
+          onClick={() => setDisplayOpen(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-transparent border-none cursor-pointer"
+        >
+          <p className="text-[10px] uppercase tracking-[0.1em] text-ink-muted font-semibold m-0">Display</p>
+          <ChevronRight size={12} className="text-ink-muted transition-transform" style={{ transform: displayOpen ? "rotate(90deg)" : undefined }} />
+        </button>
+        {displayOpen && (
+          <div className="px-4 pb-3 flex flex-col gap-3">
+            {/* Theme */}
+            <div className="flex gap-1.5">
+              <button onClick={() => { if (theme !== "light") toggle(); }} className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold rounded-md cursor-pointer ${theme === "light" ? "bg-gold text-surface border-none" : "bg-surface-overlay text-ink-secondary border border-line-subtle"}`}>
+                <Sun size={11} /> Light
+              </button>
+              <button onClick={() => { if (theme !== "dark") toggle(); }} className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold rounded-md cursor-pointer ${theme === "dark" ? "bg-gold text-surface border-none" : "bg-surface-overlay text-ink-secondary border border-line-subtle"}`}>
+                <Moon size={11} /> Dark
+              </button>
+            </div>
+            {/* Font size */}
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-ink-secondary">Font Size</span>
+              <div className="flex items-center gap-1">
+                <button onClick={decFontSize} disabled={!mounted || fontSize <= 13} className="bg-surface-overlay border border-line-subtle rounded-md w-7 h-7 flex items-center justify-center text-[11px] font-bold text-ink-secondary cursor-pointer disabled:opacity-30">A−</button>
+                <span className="text-[11px] text-ink-muted w-7 text-center">{mounted ? fontSize : 17}px</span>
+                <button onClick={incFontSize} disabled={!mounted || fontSize >= 25} className="bg-surface-overlay border border-line-subtle rounded-md w-7 h-7 flex items-center justify-center text-[11px] font-bold text-ink-secondary cursor-pointer disabled:opacity-30">A+</button>
+              </div>
+            </div>
+            {/* Section headings */}
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-ink-secondary">Section Headings</span>
+              <button
+                role="switch"
+                aria-checked={showSections}
+                aria-label="Section Headings"
+                onClick={toggleShowSections}
+                className={`relative flex-none w-8 h-4 rounded-full cursor-pointer border-none transition-colors ${showSections ? "bg-gold" : "bg-line"}`}
+              >
+                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-surface-raised transition-all ${showSections ? "left-[18px]" : "left-0.5"}`} />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button onClick={decFontSize} disabled={!mounted || fontSize <= 13} className="bg-surface-overlay border border-line-subtle rounded-md w-7 h-7 flex items-center justify-center text-[11px] font-bold text-ink-secondary cursor-pointer disabled:opacity-30">A−</button>
-            <span className="text-[11px] text-ink-muted w-7 text-center">{mounted ? fontSize : 17}px</span>
-            <button onClick={incFontSize} disabled={!mounted || fontSize >= 25} className="bg-surface-overlay border border-line-subtle rounded-md w-7 h-7 flex items-center justify-center text-[11px] font-bold text-ink-secondary cursor-pointer disabled:opacity-30">A+</button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Book list */}

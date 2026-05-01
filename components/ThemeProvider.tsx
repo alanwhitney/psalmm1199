@@ -16,6 +16,8 @@ interface ThemeContextValue {
   fontSize: number;
   incFontSize: () => void;
   decFontSize: () => void;
+  showSections: boolean;
+  toggleShowSections: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -24,12 +26,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
   const [fontSize, setFontSize] = useState(FONT_DEFAULT);
   const [mounted, setMounted] = useState(false);
+  const [showSections, setShowSections] = useState(false);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") as Theme | null;
     const storedSize = parseInt(localStorage.getItem("fontSize") ?? "", 10);
     setTheme(storedTheme ?? "dark");
     setFontSize(Number.isNaN(storedSize) ? FONT_DEFAULT : storedSize);
+    setShowSections(localStorage.getItem("showSections") === "true");
     setMounted(true);
   }, []);
 
@@ -57,8 +61,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setFontSize((s) => Math.max(s - FONT_STEP, FONT_MIN));
   }
 
+  function toggleShowSections() {
+    setShowSections((v) => {
+      const next = !v;
+      localStorage.setItem("showSections", String(next));
+      return next;
+    });
+  }
+
   return (
-    <ThemeContext.Provider value={{ theme, mounted, toggle, fontSize, incFontSize, decFontSize }}>
+    <ThemeContext.Provider value={{ theme, mounted, toggle, fontSize, incFontSize, decFontSize, showSections, toggleShowSections }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -10,6 +10,14 @@ const TRANSLATION_IDS: Record<Exclude<Translation, "ESV">, string> = {
 const API_BIBLE_BASE = "https://rest.api.bible/v1";
 const ESV_API_BASE = "https://api.esv.org/v3/passage/text";
 
+// Private-use-area sentinels to mark Words of Jesus in verse text
+export const WJ_OPEN = "";
+export const WJ_CLOSE = "";
+
+export function stripWj(text: string): string {
+  return text.replace(/[]/g, "");
+}
+
 async function apiBibleFetch(path: string) {
   const res = await fetch(`${API_BIBLE_BASE}${path}`, {
     headers: { "api-key": process.env.BIBLE_API_KEY! },
@@ -60,29 +68,55 @@ export async function fetchChapter(bookId: string, chapter: number, translation:
   if (!bibleId) throw new Error(`Translation ${translation} not configured.`);
 
   const data = await apiBibleFetch(
-    `/bibles/${bibleId}/chapters/${bookId}.${chapter}?content-type=json&include-notes=false&include-titles=false&include-chapter-numbers=false&include-verse-numbers=true&include-verse-spans=false`
+    `/bibles/${bibleId}/chapters/${bookId}.${chapter}?content-type=json&include-notes=false&include-titles=true&include-chapter-numbers=false&include-verse-numbers=true&include-verse-spans=false`
   );
+
+  const { verses, headings } = parseVerses(data.data.content);
 
   return {
     book: data.data.bookId,
     bookId,
     chapter,
     translation,
-    verses: parseVerses(data.data.content),
+    verses,
+    headings,
   };
 }
 
-// Paragraph styles that are poetic lines (q1, q2, q3, qc, qr, qm etc.)
+// Paragraph styles that are poetic lines
 const POETIC_STYLES = new Set(["q1", "q2", "q3", "qc", "qr", "qm", "qm1", "qm2"]);
 
-// Paragraph styles that are section headers to skip entirely
-const SKIP_STYLES = new Set(["qa", "d", "ms", "ms1", "ms2", "mr", "sr", "r", "sp"]);
+// Section heading styles — collected separately as headings
+const HEADING_STYLES = new Set(["s", "s1", "s2", "s3"]);
 
-function parseVerses(content: unknown): Verse[] {
-  if (!Array.isArray(content)) return [];
+// Paragraph styles to skip entirely (structural/meta content)
+const SKIP_STYLES = new Set([
+  "qa", "d", "ms", "ms1", "ms2", "mr", "sr", "r", "sp",
+  "mt", "mt1", "mt2", "mt3", "cl", "cp",
+]);
 
-  // Each entry: { paraStyle, node }
-  // We process para by para, tracking style so we know when to add line breaks
+function collectText(node: unknown, inWj = false): string {
+  if (typeof node === "string") return node;
+  if (typeof node !== "object" || node === null) return "";
+  const n = node as Record<string, unknown>;
+  if (n.type === "text" && typeof n.text === "string") {
+    return inWj ? `${WJ_OPEN}${n.text}${WJ_CLOSE}` : n.text;
+  }
+  if (n.type === "tag" && n.name === "char") {
+    const style = (n.attrs as Record<string, unknown> | undefined)?.style as string | undefined;
+    const wj = inWj || style === "wj";
+    if (Array.isArray(n.items)) return (n.items as unknown[]).map(i => collectText(i, wj)).join("");
+  }
+  if (Array.isArray(n.items)) return (n.items as unknown[]).map(i => collectText(i, inWj)).join("");
+  return "";
+}
+
+function parseVerses(content: unknown): { verses: Verse[]; headings: Record<number, string> } {
+  if (!Array.isArray(content)) return { verses: [], headings: {} };
+
+  const headings: Record<number, string> = {};
+  let pendingHeading: string | null = null;
+
   const segments: { paraStyle: string; node: Record<string, unknown> }[] = [];
 
   for (const para of content) {
@@ -91,7 +125,14 @@ function parseVerses(content: unknown): Verse[] {
     const attrs = p.attrs as Record<string, unknown> | undefined;
     const style = (attrs?.style as string) ?? "";
 
-    // Skip acrostic headers and section titles entirely
+    if (HEADING_STYLES.has(style)) {
+      if (Array.isArray(p.items)) {
+        const text = (p.items as unknown[]).map(i => collectText(i)).join("").trim();
+        if (text) segments.push({ paraStyle: "__heading__", node: { headingText: text } as unknown as Record<string, unknown> });
+      }
+      continue;
+    }
+
     if (SKIP_STYLES.has(style)) continue;
 
     if (!Array.isArray(p.items)) continue;
@@ -100,13 +141,16 @@ function parseVerses(content: unknown): Verse[] {
     }
   }
 
-  // Walk segments, accumulating verse text
-  // Use \n as line break marker within a verse for poetic lines
-  const verseMap = new Map<number, string[]>(); // number -> array of line segments
+  const verseMap = new Map<number, string[]>();
   let currentVerse: number | null = null;
   let lastParaStyle = "";
 
   for (const { paraStyle, node } of segments) {
+    if (paraStyle === "__heading__") {
+      pendingHeading = (node as { headingText?: string }).headingText ?? null;
+      continue;
+    }
+
     if (node.name === "verse" && node.type === "tag") {
       const attrs = node.attrs as Record<string, unknown> | undefined;
       const numStr = (attrs?.number ?? attrs?.sid) as string | undefined;
@@ -115,6 +159,10 @@ function parseVerses(content: unknown): Verse[] {
         if (!isNaN(num)) {
           currentVerse = num;
           if (!verseMap.has(num)) verseMap.set(num, []);
+          if (pendingHeading !== null) {
+            headings[num] = pendingHeading;
+            pendingHeading = null;
+          }
         }
       }
       lastParaStyle = paraStyle;
@@ -128,14 +176,12 @@ function parseVerses(content: unknown): Verse[] {
 
     const lines = verseMap.get(currentVerse)!;
 
-    // If this segment is in a new poetic para line, add a line break
     const isPoetic = POETIC_STYLES.has(paraStyle);
     const needsBreak = isPoetic && lines.length > 0 && paraStyle !== lastParaStyle;
 
     if (needsBreak) {
       lines.push("\n");
     } else if (lines.length > 0) {
-      // Same paragraph — add a space if needed
       const last = lines[lines.length - 1];
       if (last !== "\n" && !last.endsWith(" ")) {
         lines.push(" ");
@@ -146,20 +192,13 @@ function parseVerses(content: unknown): Verse[] {
     lastParaStyle = paraStyle;
   }
 
-  return Array.from(verseMap.entries())
+  const verses = Array.from(verseMap.entries())
     .sort(([a], [b]) => a - b)
     .map(([number, lines]) => ({
       number,
       text: lines.join("").trim(),
     }))
     .filter((v) => v.text.length > 0);
-}
 
-function collectText(node: unknown): string {
-  if (typeof node === "string") return node;
-  if (typeof node !== "object" || node === null) return "";
-  const n = node as Record<string, unknown>;
-  if (n.type === "text" && typeof n.text === "string") return n.text;
-  if (Array.isArray(n.items)) return (n.items as unknown[]).map(collectText).join("");
-  return "";
+  return { verses, headings };
 }

@@ -3,7 +3,33 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square } from "lucide-react";
 import { useSpeech } from "@/hooks/useSpeech";
+import { useTheme } from "@/components/ThemeProvider";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
+
+// Private-use-area sentinels matching bible-api.ts
+const WJ_OPEN = "";
+const WJ_CLOSE = "";
+
+function stripWj(text: string): string {
+  return text.replace(/[]/g, "");
+}
+
+function renderWjText(text: string): React.ReactNode {
+  if (!text.includes(WJ_OPEN)) return text;
+  const parts: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < text.length) {
+    const open = text.indexOf(WJ_OPEN, i);
+    if (open === -1) { parts.push(text.slice(i)); break; }
+    if (open > i) parts.push(text.slice(i, open));
+    const close = text.indexOf(WJ_CLOSE, open + 1);
+    if (close === -1) { parts.push(<span key={key++} className="wj">{text.slice(open + 1)}</span>); break; }
+    parts.push(<span key={key++} className="wj">{text.slice(open + 1, close)}</span>);
+    i = close + 1;
+  }
+  return <>{parts}</>;
+}
 
 const HIGHLIGHT_COLORS = [
   { id: "yellow", bg: "rgba(201,168,76,0.22)",  swatch: "#c9a84c" },
@@ -32,6 +58,8 @@ interface ChapterViewProps {
 export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, initialHighlights, openNote, onVersesReady, externalHighlight }: ChapterViewProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { showSections } = useTheme();
+  const redLetter = translation === "KJV" || translation === "NIV";
 
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
   const [note, setNote] = useState<Note | null>(initialNote);
@@ -44,7 +72,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const speech = useSpeech(chapterData?.verses ?? []);
 
   useEffect(() => {
-    if (chapterData) onVersesReady?.(chapterData.verses);
+    if (chapterData) onVersesReady?.(chapterData.verses.map(v => ({ ...v, text: stripWj(v.text) })));
   }, [chapterData]);
 
   useEffect(() => {
@@ -125,7 +153,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   function getVerseText(num: number) {
     const verse = chapterData?.verses.find(v => v.number === num);
-    return verse ? verse.text.replace(/\n/g, " ").trim() : "";
+    return verse ? stripWj(verse.text.replace(/\n/g, " ").trim()) : "";
   }
 
   function formatShareText(num: number) {
@@ -269,7 +297,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [readProgress, setReadProgress] = useState(0);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full relative">
       {/* Reading pane */}
       <div className="flex-1 flex flex-col min-h-0">
       <div
@@ -389,14 +417,18 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           )}
 
           {/* Bible text */}
-          <div className="font-reading leading-loose text-ink-primary" style={{ fontSize: "var(--reading-font-size, 17px)" }}>
+          <div className={`font-reading leading-loose text-ink-primary${redLetter ? " red-letter" : ""}`} style={{ fontSize: "var(--reading-font-size, 17px)" }}>
             {chapterData.verses.map((verse) => {
               const lines = verse.text.split("\n");
               const isSelected = selectedVerse === verse.number;
               const isNarrating = speech.activeVerse === verse.number;
               const highlightColor = HIGHLIGHT_COLORS.find((c) => c.id === highlights[verse.number]);
+              const heading = showSections ? chapterData.headings?.[verse.number] : null;
               return (
                 <div key={verse.number}>
+                  {heading && (
+                    <h3 className="section-heading">{heading}</h3>
+                  )}
                   <p
                     id={`v${verse.number}`}
                     role="button"
@@ -422,7 +454,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                       <span key={i}>
                         {i > 0 && <br />}
                         {i > 0 && <span className="inline-block w-6" />}
-                        {line.trim()}
+                        {renderWjText(line.trim())}
                       </span>
                     ))}
                   </p>
@@ -588,9 +620,9 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       </div>
       </div>
 
-      {/* Notes panel */}
+      {/* Notes panel — full overlay on mobile, side panel on desktop */}
       {noteOpen && (
-        <div className="w-80 border-l border-l-line-subtle bg-surface-raised flex flex-col shrink-0">
+        <div className="absolute inset-0 z-20 lg:static lg:inset-auto lg:z-auto lg:w-80 border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
           <div className="px-4 py-3 border-b border-b-line-subtle flex items-center justify-between">
             <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
             <button onClick={() => setNoteOpen(false)} className="bg-transparent border-none cursor-pointer text-ink-muted text-lg leading-none p-0">×</button>

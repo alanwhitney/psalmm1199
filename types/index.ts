@@ -20,6 +20,7 @@ export interface Chapter {
   chapter: number;
   translation: Translation;
   verses: Verse[];
+  headings?: Record<number, string>;
 }
 
 // User / Auth types
