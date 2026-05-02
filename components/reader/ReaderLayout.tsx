@@ -117,19 +117,21 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
                 <button onClick={incFontSize} disabled={!mounted || fontSize >= 25} className="bg-surface-overlay border border-line-subtle rounded-md w-7 h-7 flex items-center justify-center text-[11px] font-bold text-ink-secondary cursor-pointer disabled:opacity-30">A+</button>
               </div>
             </div>
-            {/* Section headings */}
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-ink-secondary">Section Headings</span>
-              <button
-                role="switch"
-                aria-checked={showSections}
-                aria-label="Section Headings"
-                onClick={toggleShowSections}
-                className={`relative flex-none w-8 h-4 rounded-full cursor-pointer border-none transition-colors ${showSections ? "bg-gold" : "bg-line"}`}
-              >
-                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-surface-raised transition-all ${showSections ? "left-[18px]" : "left-0.5"}`} />
-              </button>
-            </div>
+            {/* Section headings — NKJV and NIV only */}
+            {(translation === "NKJV" || translation === "NIV") && (
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-ink-secondary">Section Headings</span>
+                <button
+                  role="switch"
+                  aria-checked={showSections}
+                  aria-label="Section Headings"
+                  onClick={toggleShowSections}
+                  className={`relative flex-none w-8 h-4 rounded-full cursor-pointer border-none transition-colors ${showSections ? "bg-gold" : "bg-line"}`}
+                >
+                  <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-surface-raised transition-all ${showSections ? "left-[18px]" : "left-0.5"}`} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
