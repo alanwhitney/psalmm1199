@@ -22,7 +22,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
     return notFound();
   }
 
-  const VALID_TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV"];
+  const VALID_TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV", "CEV"];
   const translation: Translation =
     VALID_TRANSLATIONS.includes(t as Translation) ? (t as Translation) : "NKJV";
 
