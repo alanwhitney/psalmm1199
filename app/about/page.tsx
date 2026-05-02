@@ -49,7 +49,7 @@ export default async function AboutPage() {
           },
           {
             heading: "Translations",
-            body: "Currently available in King James Version (KJV), New King James Version (NKJV), New International Version (NIV), and English Standard Version (ESV). KJV text is in the public domain. NKJV and NIV text is provided through the API.Bible service. ESV text is provided through the Crossway ESV API."
+            body: "Currently available in King James Version (KJV), New King James Version (NKJV), New International Version (NIV), English Standard Version (ESV), and Contemporary English Version (CEV). KJV text is in the public domain. NKJV, NIV, and CEV text is provided through the API.Bible service. ESV text is provided through the Crossway ESV API."
           },
           {
             heading: "Features",
@@ -91,6 +91,9 @@ export default async function AboutPage() {
             </p>
             <p className="m-0">
               Scripture quotations marked <span className="text-ink-secondary font-semibold">KJV</span> are from the King James Version, which is in the public domain.
+            </p>
+            <p className="m-0">
+              Scripture quotations marked <span className="text-ink-secondary font-semibold">CEV</span> are from the Contemporary English Version® Copyright © 1995 American Bible Society. All rights reserved.
             </p>
           </div>
         </div>
