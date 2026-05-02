@@ -5,6 +5,7 @@ const TRANSLATION_IDS: Record<Exclude<Translation, "ESV">, string> = {
   KJV: process.env.BIBLE_API_KJV_ID || "de4e12af7f28f599-02",
   NKJV: process.env.BIBLE_API_NKJV_ID || "",
   NIV: process.env.BIBLE_API_NIV_ID || "3e2eb613d45e131e-01",
+  CEV: process.env.BIBLE_API_CEV_ID || "555fef9a6cb31151-01",
 };
 
 const API_BIBLE_BASE = "https://rest.api.bible/v1";

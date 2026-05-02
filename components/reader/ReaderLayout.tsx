@@ -23,7 +23,7 @@ interface ReaderLayoutProps {
   noteChapters?: Record<string, number[]>;
 }
 
-const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV"];
+const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV", "CEV"];
 const DESKTOP_BREAKPOINT = 1024;
 
 export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {} }: ReaderLayoutProps) {
@@ -118,7 +118,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
               </div>
             </div>
             {/* Section headings — NKJV and NIV only */}
-            {(translation === "NKJV" || translation === "NIV") && (
+            {(translation === "NKJV" || translation === "NIV" || translation === "CEV") && (
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-ink-secondary">Section Headings</span>
                 <button
