@@ -53,6 +53,7 @@ export interface Note {
   chapter: number;
   translation: Translation;
   content: string;
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }

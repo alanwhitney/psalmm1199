@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { lastPositionUrl } from "@/lib/last-position";
+import { lastPositionUrl, lastPositionLabel } from "@/lib/last-position";
 import JournalClient from "./JournalClient";
 import AppLayout from "@/components/AppLayout";
 
@@ -12,7 +12,9 @@ export default async function JournalPage() {
   if (!user) redirect("/auth/login");
 
   const cookieStore = await cookies();
-  const backHref = lastPositionUrl(cookieStore.get("last_position")?.value);
+  const raw = cookieStore.get("last_position")?.value;
+  const backHref = lastPositionUrl(raw);
+  const backLabel = lastPositionLabel(raw);
 
   const { data: prayers } = await supabase
     .from("prayers")
@@ -21,7 +23,7 @@ export default async function JournalPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <AppLayout user={user} backHref={backHref} title="Prayer Journal">
+    <AppLayout user={user} backHref={backHref} backLabel={backLabel} title="Prayer Journal">
       <JournalClient prayers={prayers ?? []} userId={user.id} />
     </AppLayout>
   );

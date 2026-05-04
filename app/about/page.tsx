@@ -3,7 +3,7 @@ import AppLayout from "@/components/AppLayout";
 import AppLogo from "@/components/AppLogo";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
-import { lastPositionUrl } from "@/lib/last-position";
+import { lastPositionUrl, lastPositionLabel } from "@/lib/last-position";
 
 export const metadata = {
   title: "About — Psalm 119:9",
@@ -13,9 +13,11 @@ export default async function AboutPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   const cookieStore = await cookies();
-  const backHref = lastPositionUrl(cookieStore.get("last_position")?.value);
+  const raw = cookieStore.get("last_position")?.value;
+  const backHref = lastPositionUrl(raw);
+  const backLabel = lastPositionLabel(raw);
   return (
-    <AppLayout user={user} backHref={backHref} title="About">
+    <AppLayout user={user} backHref={backHref} backLabel={backLabel} title="About">
       <div className="max-w-[640px] mx-auto py-[60px] px-6">
         {/* Icon */}
         <div className="flex justify-center mb-8">
@@ -57,7 +59,7 @@ export default async function AboutPage() {
           },
           {
             heading: "Your data",
-            body: "Bookmarks, notes, and reading plan progress are stored securely in your account. No data is sold or shared with third parties. You can delete your account and all associated data at any time."
+            body: "Bookmarks, notes, and reading plan progress are stored securely in your account. No data is sold or shared with third parties."
           },
           {
             heading: "About us",

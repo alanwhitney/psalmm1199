@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { lastPositionUrl } from "@/lib/last-position";
+import { lastPositionUrl, lastPositionLabel } from "@/lib/last-position";
 import BookmarksClient from "./BookmarksClient";
 import AppLayout from "@/components/AppLayout";
 
@@ -12,7 +12,9 @@ export default async function BookmarksPage() {
   if (!user) redirect("/auth/login");
 
   const cookieStore = await cookies();
-  const backHref = lastPositionUrl(cookieStore.get("last_position")?.value);
+  const raw = cookieStore.get("last_position")?.value;
+  const backHref = lastPositionUrl(raw);
+  const backLabel = lastPositionLabel(raw);
 
   const [
     { data: bookmarks },
@@ -21,13 +23,13 @@ export default async function BookmarksPage() {
     { data: completions },
   ] = await Promise.all([
     supabase.from("bookmarks").select("*").eq("user_id", user.id).order("sorted_at", { ascending: false }),
-    supabase.from("notes").select("id, book_id, book_name, chapter, translation, updated_at, content").eq("user_id", user.id).order("updated_at", { ascending: false }),
+    supabase.from("notes").select("id, book_id, book_name, chapter, translation, updated_at, content, archived").eq("user_id", user.id).order("updated_at", { ascending: false }),
     supabase.from("user_reading_plans").select("*").eq("user_id", user.id),
     supabase.from("plan_completions").select("plan_id, day").eq("user_id", user.id),
   ]);
 
   return (
-    <AppLayout user={user} backHref={backHref} title="My Reading">
+    <AppLayout user={user} backHref={backHref} backLabel={backLabel} title="My Reading">
       <BookmarksClient
         bookmarks={bookmarks ?? []}
         notes={notes ?? []}

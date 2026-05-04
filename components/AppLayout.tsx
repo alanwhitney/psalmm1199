@@ -11,13 +11,14 @@ import { createClient } from "@/lib/supabase/client";
 interface Props {
   user: { id: string; email?: string } | null;
   backHref: string;
+  backLabel?: string;
   title: string;
   children: React.ReactNode;
 }
 
 const DESKTOP_BREAKPOINT = 1024;
 
-export default function AppLayout({ user, backHref, title, children }: Props) {
+export default function AppLayout({ user, backHref, backLabel = "Reading", title, children }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const { theme, mounted, toggle, fontSize, incFontSize, decFontSize } = useTheme();
@@ -135,7 +136,7 @@ export default function AppLayout({ user, backHref, title, children }: Props) {
             </button>
           )}
           <Link href={backHref} className="flex items-center gap-1.5 no-underline text-ink-muted text-[13px]">
-            ← Back to reading
+            ← {backLabel}
           </Link>
           <span className="text-line-subtle">·</span>
           <span className="text-[13px] font-semibold text-ink-primary">{title}</span>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Archive, ArchiveRestore } from "lucide-react";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
+import { detectBibleRefs } from "@/lib/bible-refs";
 
 // Private-use-area sentinels matching bible-api.ts
 const WJ_OPEN = "";
@@ -213,6 +214,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [noteContent, setNoteContent] = useState(initialNote?.content ?? "");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [noteArchived, setNoteArchived] = useState(initialNote?.archived ?? false);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const noteRef = useRef(note);
   const noteContentRef = useRef(noteContent);
@@ -270,7 +272,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   async function deleteNote() {
     if (!note) return;
     const { error } = await supabase.from("notes").delete().eq("id", note.id);
-    if (!error) { setNote(null); setNoteContent(""); setNoteOpen(false); }
+    if (!error) { setNote(null); setNoteContent(""); setNoteOpen(false); setNoteArchived(false); }
+  }
+
+  async function toggleArchive() {
+    if (!note) return;
+    const next = !noteArchived;
+    const { error } = await supabase.from("notes").update({ archived: next }).eq("id", note.id);
+    if (!error) setNoteArchived(next);
   }
 
   if (!chapterData) {
@@ -362,11 +371,15 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${
                 noteOpen
                   ? "border-line bg-surface-overlay text-ink-primary"
+                  : noteArchived
+                  ? "border-line-subtle bg-surface-raised text-ink-muted"
+                  : note
+                  ? "border-line-subtle bg-surface-raised text-ink-primary"
                   : "border-line-subtle bg-surface-raised text-ink-secondary"
-              } ${note ? "text-ink-primary" : ""}`}
+              }`}
             >
-              <StickyNote size={13} />
-              {note ? "View note" : "Add note"}
+              {noteArchived ? <Archive size={13} /> : <StickyNote size={13} />}
+              {note ? (noteArchived ? "Archived note" : "View note") : "Add note"}
             </button>
 
             {/* Listen button */}
@@ -624,7 +637,10 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       {noteOpen && (
         <div className="absolute inset-0 z-20 lg:static lg:inset-auto lg:z-auto lg:w-80 border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
           <div className="px-4 py-3 border-b border-b-line-subtle flex items-center justify-between">
-            <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
+              {noteArchived && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-overlay text-ink-muted font-semibold">Archived</span>}
+            </div>
             <button onClick={() => setNoteOpen(false)} className="bg-transparent border-none cursor-pointer text-ink-muted text-lg leading-none p-0">×</button>
           </div>
           <textarea
@@ -633,15 +649,32 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
             value={noteContent}
             onChange={(e) => handleNoteChange(e.target.value)}
           />
+          {(() => {
+            const refs = noteContent.trim() ? detectBibleRefs(noteContent, translation) : [];
+            return refs.length > 0 ? (
+              <div className="px-4 py-2 border-t border-t-line-subtle flex flex-wrap gap-1.5">
+                {refs.map(ref => (
+                  <a
+                    key={ref.href}
+                    href={ref.href}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay border border-line-subtle text-gold no-underline font-semibold"
+                  >
+                    {ref.label}
+                  </a>
+                ))}
+              </div>
+            ) : null;
+          })()}
           <div className="px-4 py-3 border-t border-t-line-subtle flex items-center justify-between gap-2">
             {note && (
-              <button
-                onClick={deleteNote}
-                title="Delete note"
-                className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex shrink-0"
-              >
-                <Trash2 size={14} />
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={deleteNote} title="Delete note" className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex">
+                  <Trash2 size={14} />
+                </button>
+                <button onClick={toggleArchive} title={noteArchived ? "Unarchive" : "Archive"} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex">
+                  {noteArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                </button>
+              </div>
             )}
             {note?.updated_at && (
               <span className="text-[11px] text-ink-muted">Saved {new Date(note.updated_at).toLocaleDateString()}</span>

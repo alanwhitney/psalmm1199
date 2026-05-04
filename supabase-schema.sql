@@ -50,6 +50,7 @@ create table if not exists notes (
   chapter     integer not null,
   translation text not null default 'KJV',
   content     text not null default '',
+  archived    boolean not null default false,
   created_at  timestamptz default now() not null,
   updated_at  timestamptz default now() not null,
 
