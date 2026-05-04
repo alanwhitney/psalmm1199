@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { fetchChapter } from "@/lib/bible-api";
 import { BOOK_BY_ID } from "@/lib/books";
-import { Translation, Highlight } from "@/types";
+import { Translation, Highlight, Note } from "@/types";
 import ReaderLayoutWrapper from "@/components/reader/ReaderLayoutWrapper";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { lastPositionUrl, lastPositionLabel } from "@/lib/last-position";
@@ -46,7 +46,8 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser();
 
   let bookmark = null;
-  let note = null;
+  let note: Note | null = null;
+  let archivedNotes: Note[] = [];
   let highlights: Highlight[] = [];
 
   let bookmarkPositions: Record<string, number> = {};
@@ -55,13 +56,15 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   if (user) {
     const [{ data: bm }, { data: nt }, { data: hl }, { data: allBookmarks }, { data: allNotes }] = await Promise.all([
       supabase.from("bookmarks").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
-      supabase.from("notes").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
+      supabase.from("notes").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).order("updated_at", { ascending: false }),
       supabase.from("highlights").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation),
       supabase.from("bookmarks").select("book_id, chapter").eq("user_id", user.id),
       supabase.from("notes").select("book_id, chapter").eq("user_id", user.id),
     ]);
     bookmark = bm;
-    note = nt;
+    const chapterNotes = (nt ?? []) as Note[];
+    note = chapterNotes.find(n => !n.archived) ?? null;
+    archivedNotes = chapterNotes.filter(n => n.archived);
     highlights = hl ?? [];
     bookmarkPositions = Object.fromEntries((allBookmarks ?? []).map(b => [b.book_id, b.chapter]));
     for (const n of allNotes ?? []) {
@@ -78,6 +81,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       chapterData={chapterData}
       initialBookmark={bookmark}
       initialNote={note}
+      initialArchivedNotes={archivedNotes}
       initialHighlights={highlights}
       openNote={noteParam === "1"}
       bookmarkPositions={bookmarkPositions}

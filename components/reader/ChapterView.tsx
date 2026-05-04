@@ -50,13 +50,14 @@ interface ChapterViewProps {
   user: { id: string; email?: string } | null;
   initialBookmark: BookmarkType | null;
   initialNote: Note | null;
+  initialArchivedNotes: Note[];
   initialHighlights: Highlight[];
   openNote?: boolean;
   onVersesReady?: (verses: { number: number; text: string }[]) => void;
   externalHighlight?: number | null;
 }
 
-export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, initialHighlights, openNote, onVersesReady, externalHighlight }: ChapterViewProps) {
+export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, initialArchivedNotes, initialHighlights, openNote, onVersesReady, externalHighlight }: ChapterViewProps) {
   const router = useRouter();
   const supabase = createClient();
   const { showSections } = useTheme();
@@ -214,7 +215,8 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [noteContent, setNoteContent] = useState(initialNote?.content ?? "");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
-  const [noteArchived, setNoteArchived] = useState(initialNote?.archived ?? false);
+  const [archivedNotes, setArchivedNotes] = useState<Note[]>(initialArchivedNotes);
+  const [archivedPanelOpen, setArchivedPanelOpen] = useState(false);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const noteRef = useRef(note);
   const noteContentRef = useRef(noteContent);
@@ -269,17 +271,46 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     autoSaveTimer.current = setTimeout(() => saveNote(value), 1500);
   }
 
-  async function deleteNote() {
-    if (!note) return;
-    const { error } = await supabase.from("notes").delete().eq("id", note.id);
-    if (!error) { setNote(null); setNoteContent(""); setNoteOpen(false); setNoteArchived(false); }
+  async function deleteNote(noteId?: string) {
+    const targetId = noteId ?? note?.id;
+    if (!targetId) return;
+    const { error } = await supabase.from("notes").delete().eq("id", targetId);
+    if (!error) {
+      if (noteId && noteId !== note?.id) {
+        setArchivedNotes(prev => prev.filter(n => n.id !== noteId));
+      } else {
+        setNote(null); setNoteContent(""); setNoteOpen(false);
+      }
+    }
   }
 
-  async function toggleArchive() {
+  async function archiveActiveNote() {
     if (!note) return;
-    const next = !noteArchived;
-    const { error } = await supabase.from("notes").update({ archived: next }).eq("id", note.id);
-    if (!error) setNoteArchived(next);
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    const latestContent = noteContentRef.current;
+    const { error } = await supabase.from("notes").update({ content: latestContent, archived: true }).eq("id", note.id);
+    if (!error) {
+      setArchivedNotes(prev => [{ ...note, content: latestContent, archived: true }, ...prev]);
+      setNote(null);
+      setNoteContent("");
+    }
+  }
+
+  async function unarchiveNote(id: string) {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    if (note) {
+      await supabase.from("notes").update({ content: noteContentRef.current, archived: true }).eq("id", note.id);
+      setArchivedNotes(prev => [{ ...note, content: noteContentRef.current, archived: true }, ...prev]);
+    }
+    const { error } = await supabase.from("notes").update({ archived: false }).eq("id", id);
+    if (!error) {
+      const restored = archivedNotes.find(n => n.id === id);
+      if (restored) {
+        setNote({ ...restored, archived: false });
+        setNoteContent(restored.content);
+        setArchivedNotes(prev => prev.filter(n => n.id !== id));
+      }
+    }
   }
 
   if (!chapterData) {
@@ -371,15 +402,13 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${
                 noteOpen
                   ? "border-line bg-surface-overlay text-ink-primary"
-                  : noteArchived
-                  ? "border-line-subtle bg-surface-raised text-ink-muted"
                   : note
                   ? "border-line-subtle bg-surface-raised text-ink-primary"
                   : "border-line-subtle bg-surface-raised text-ink-secondary"
               }`}
             >
-              {noteArchived ? <Archive size={13} /> : <StickyNote size={13} />}
-              {note ? (noteArchived ? "Archived note" : "View note") : "Add note"}
+              <StickyNote size={13} />
+              {note ? "View note" : "Add note"}
             </button>
 
             {/* Listen button */}
@@ -637,10 +666,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       {noteOpen && (
         <div className="absolute inset-0 z-20 lg:static lg:inset-auto lg:z-auto lg:w-80 border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
           <div className="px-4 py-3 border-b border-b-line-subtle flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
-              {noteArchived && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-overlay text-ink-muted font-semibold">Archived</span>}
-            </div>
+            <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
             <button onClick={() => setNoteOpen(false)} className="bg-transparent border-none cursor-pointer text-ink-muted text-lg leading-none p-0">×</button>
           </div>
           <textarea
@@ -668,11 +694,11 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           <div className="px-4 py-3 border-t border-t-line-subtle flex items-center justify-between gap-2">
             {note && (
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={deleteNote} title="Delete note" className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex">
+                <button onClick={() => deleteNote()} title="Delete note" className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex">
                   <Trash2 size={14} />
                 </button>
-                <button onClick={toggleArchive} title={noteArchived ? "Unarchive" : "Archive"} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex">
-                  {noteArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                <button onClick={archiveActiveNote} title="Archive note" className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex">
+                  <Archive size={14} />
                 </button>
               </div>
             )}
@@ -687,6 +713,43 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               {noteSaving ? "Saving…" : noteSaved ? "Saved ✓" : "Save"}
             </button>
           </div>
+
+          {/* Archived notes */}
+          {archivedNotes.length > 0 && (
+            <div className="border-t border-t-line-subtle shrink-0">
+              <button
+                onClick={() => setArchivedPanelOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-none cursor-pointer"
+              >
+                <span className="text-[11px] text-ink-muted font-semibold flex items-center gap-1.5">
+                  <Archive size={11} /> Archived ({archivedNotes.length})
+                </span>
+                <ChevronRight size={11} className="text-ink-muted" style={{ transform: archivedPanelOpen ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }} />
+              </button>
+              {archivedPanelOpen && (
+                <div className="px-3 pb-3 flex flex-col gap-2 max-h-48 overflow-y-auto">
+                  {archivedNotes.map(arNote => (
+                    <div key={arNote.id} className="bg-surface-overlay border border-line-subtle rounded-lg px-3 py-2">
+                      <p className="text-[12px] text-ink-secondary m-0 leading-[1.5] italic mb-2 line-clamp-2">
+                        &ldquo;{arNote.content.length > 100 ? arNote.content.slice(0, 100) + "…" : arNote.content}&rdquo;
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-ink-muted">{new Date(arNote.updated_at).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => unarchiveNote(arNote.id)} title="Restore" className="flex items-center gap-1 text-[10px] text-gold bg-transparent border-none cursor-pointer px-1 py-0.5">
+                            <ArchiveRestore size={11} /> Restore
+                          </button>
+                          <button onClick={() => deleteNote(arNote.id)} title="Delete" className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5 flex">
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

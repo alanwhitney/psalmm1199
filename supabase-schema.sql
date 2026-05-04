@@ -54,8 +54,8 @@ create table if not exists notes (
   created_at  timestamptz default now() not null,
   updated_at  timestamptz default now() not null,
 
-  -- One note per user per chapter per translation
-  unique(user_id, book_id, chapter, translation)
+  -- Multiple notes per chapter allowed (archived notes stay alongside active note)
+  -- Migration: ALTER TABLE notes DROP CONSTRAINT notes_user_id_book_id_chapter_translation_key;
 );
 
 -- Row Level Security
