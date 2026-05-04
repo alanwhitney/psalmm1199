@@ -21,12 +21,14 @@ interface ReaderLayoutProps {
   onHighlightVerse?: (verse: number | null) => void;
   bookmarkPositions?: Record<string, number>;
   noteChapters?: Record<string, number[]>;
+  backHref?: string;
+  backLabel?: string;
 }
 
 const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV", "CEV"];
 const DESKTOP_BREAKPOINT = 1024;
 
-export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {} }: ReaderLayoutProps) {
+export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel }: ReaderLayoutProps) {
   const router = useRouter();
   const supabase = createClient();
   const { theme, mounted, toggle, fontSize, incFontSize, decFontSize, showSections, toggleShowSections } = useTheme();
@@ -203,16 +205,24 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
         <header className="flex items-center justify-between px-4 py-[10px] border-b border-b-line-subtle bg-surface-raised shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {!isDesktop && (
-              <button onClick={() => setMobileOpen(true)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1">
+              <button onClick={() => setMobileOpen(true)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 shrink-0">
                 <Menu size={18} />
               </button>
             )}
-            <h1 className="text-sm font-semibold text-ink-primary m-0">
+            {backHref && (
+              <>
+                <Link href={backHref} className="text-[13px] text-ink-muted no-underline shrink-0">
+                  ← {backLabel}
+                </Link>
+                <span className="text-line-subtle shrink-0">·</span>
+              </>
+            )}
+            <h1 className="text-sm font-semibold text-ink-primary m-0 truncate">
               {book.name} <span className="text-ink-muted font-normal">{chapter}</span>
             </h1>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-surface-overlay text-gold border border-gold-muted font-bold">
+            <span className="text-[10px] px-2 py-0.5 rounded bg-surface-overlay text-gold border border-gold-muted font-bold shrink-0">
               {translation}
             </span>
           </div>

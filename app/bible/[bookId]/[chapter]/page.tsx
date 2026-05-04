@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { fetchChapter } from "@/lib/bible-api";
 import { BOOK_BY_ID } from "@/lib/books";
 import { Translation, Highlight } from "@/types";
 import ReaderLayoutWrapper from "@/components/reader/ReaderLayoutWrapper";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { lastPositionUrl, lastPositionLabel } from "@/lib/last-position";
 
 interface PageProps {
   params: Promise<{ bookId: string; chapter: string }>;
@@ -32,6 +34,13 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   } catch {
     chapterData = null;
   }
+
+  const cookieStore = await cookies();
+  const lastPos = cookieStore.get("last_position")?.value;
+  const [lastBookId, lastChapter] = (lastPos ?? "").split(":");
+  const isDifferentChapter = lastBookId !== bookId.toUpperCase() || lastChapter !== String(chapterNum);
+  const backHref = isDifferentChapter ? lastPositionUrl(lastPos) : undefined;
+  const backLabel = isDifferentChapter ? lastPositionLabel(lastPos) : undefined;
 
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -73,6 +82,8 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       openNote={noteParam === "1"}
       bookmarkPositions={bookmarkPositions}
       noteChapters={noteChapters}
+      backHref={backHref}
+      backLabel={backLabel}
     />
   );
 }
