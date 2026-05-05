@@ -90,6 +90,17 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     }
   }, [externalHighlight]);
 
+  useEffect(() => {
+    const match = window.location.hash.match(/^#v(\d+)$/);
+    if (match) {
+      const verseNum = parseInt(match[1], 10);
+      setSelectedVerse(verseNum);
+      setTimeout(() => {
+        document.getElementById(`v${verseNum}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+    }
+  }, []);
+
   const [copied, setCopied] = useState(false);
   const highlightInFlight = useRef(false);
 
@@ -251,20 +262,20 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     if (!user) { router.push("/auth/login"); return; }
     if (bookmark) {
       const { error } = await supabase.from("bookmarks").delete().eq("id", bookmark.id);
-      if (!error) { setBookmark(null); setBookmarkLabel(""); }
+      if (!error) { setBookmark(null); setBookmarkLabel(""); router.refresh(); }
     } else {
       const { data } = await supabase.from("bookmarks").insert({
         user_id: user.id, book_id: book.id, book_name: book.name,
         chapter, translation, label: "",
       }).select().single();
-      if (data) { setBookmark(data); setLabelEditing(true); }
+      if (data) { setBookmark(data); setLabelEditing(true); router.refresh(); }
     }
   }
 
   async function saveLabel() {
     if (!bookmark) return;
     const { error } = await supabase.from("bookmarks").update({ label: bookmarkLabel, sorted_at: new Date().toISOString() }).eq("id", bookmark.id);
-    if (!error) { setLabelEditing(false); setBookmark({ ...bookmark, label: bookmarkLabel }); }
+    if (!error) { setLabelEditing(false); setBookmark({ ...bookmark, label: bookmarkLabel }); router.refresh(); }
   }
 
   const saveNote = useCallback(async (content?: string) => {
@@ -599,7 +610,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                                 {(xrefCache[verse.number] ?? []).map(ref => (
                                   <a
                                     key={ref.href + ref.verse}
-                                    href={`${ref.href}?t=${translation}`}
+                                    href={`${ref.href}?t=${translation}#v${ref.verse}`}
                                     className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay border border-line-subtle text-gold no-underline font-semibold"
                                   >
                                     {ref.label}

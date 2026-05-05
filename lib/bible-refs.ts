@@ -69,7 +69,7 @@ export function detectBibleRefs(text: string, translation: Translation): BibleRe
       chapter,
       verse,
       label: verse ? `${book.name} ${chapter}:${verse}` : `${book.name} ${chapter}`,
-      href: `/bible/${bookId}/${chapter}?t=${translation}`,
+      href: `/bible/${bookId}/${chapter}?t=${translation}${verse ? `#v${verse}` : ""}`,
     });
   }
   return refs;
