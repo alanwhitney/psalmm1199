@@ -93,6 +93,25 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [copied, setCopied] = useState(false);
   const highlightInFlight = useRef(false);
 
+  // Cross-references
+  const [xrefOpen, setXrefOpen] = useState<number | null>(null);
+  const [xrefCache, setXrefCache] = useState<Record<number, { bookId: string; chapter: number; verse: number; label: string; href: string }[]>>({});
+  const [xrefLoading, setXrefLoading] = useState(false);
+
+  async function loadXrefs(verseNum: number) {
+    if (xrefOpen === verseNum) { setXrefOpen(null); return; }
+    setXrefOpen(verseNum);
+    if (xrefCache[verseNum]) return;
+    setXrefLoading(true);
+    try {
+      const res = await fetch(`/api/crossrefs?bookId=${book.id}&chapter=${chapter}&verse=${verseNum}`);
+      const data = await res.json();
+      setXrefCache(prev => ({ ...prev, [verseNum]: data.refs ?? [] }));
+    } finally {
+      setXrefLoading(false);
+    }
+  }
+
   // Strong's
   const [strongsOpen, setStrongsOpen] = useState<number | null>(null);
   const [strongsCache, setStrongsCache] = useState<Record<number, { word: string; strongs: string; lemma: string; def: string; xlit?: string; derivation?: string }[]>>({});
@@ -149,7 +168,10 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   }
 
   function selectVerse(num: number) {
-    setSelectedVerse(prev => prev === num ? null : num);
+    setSelectedVerse(prev => {
+      if (prev !== num) { setXrefOpen(null); setStrongsOpen(null); }
+      return prev === num ? null : num;
+    });
     setCopied(false);
   }
 
@@ -555,6 +577,37 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                           >
                             <XIcon size={11} /> Remove
                           </button>
+                        )}
+                      </div>
+
+                      {/* Cross-references row */}
+                      <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
+                        <button
+                          onClick={() => loadXrefs(verse.number)}
+                          className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none"
+                        >
+                          {xrefOpen === verse.number ? "▲ Hide cross-refs" : "▼ Cross-refs"}
+                        </button>
+                        {xrefOpen === verse.number && (
+                          <div className="mt-2">
+                            {xrefLoading && !xrefCache[verse.number] ? (
+                              <p className="text-[10px] text-ink-muted m-0">Loading…</p>
+                            ) : (xrefCache[verse.number] ?? []).length === 0 ? (
+                              <p className="text-[10px] text-ink-muted m-0">No cross-references found.</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {(xrefCache[verse.number] ?? []).map(ref => (
+                                  <a
+                                    key={ref.href + ref.verse}
+                                    href={`${ref.href}?t=${translation}`}
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay border border-line-subtle text-gold no-underline font-semibold"
+                                  >
+                                    {ref.label}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
 
