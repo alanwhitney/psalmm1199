@@ -53,11 +53,12 @@ interface ChapterViewProps {
   initialArchivedNotes: Note[];
   initialHighlights: Highlight[];
   openNote?: boolean;
+  onNoteOpenChange?: (open: boolean) => void;
   onVersesReady?: (verses: { number: number; text: string }[]) => void;
   externalHighlight?: number | null;
 }
 
-export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, initialArchivedNotes, initialHighlights, openNote, onVersesReady, externalHighlight }: ChapterViewProps) {
+export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, initialArchivedNotes, initialHighlights, openNote, onNoteOpenChange, onVersesReady, externalHighlight }: ChapterViewProps) {
   const router = useRouter();
   const supabase = createClient();
   const { showSections } = useTheme();
@@ -66,6 +67,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
   const [note, setNote] = useState<Note | null>(initialNote);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
+  useEffect(() => { onNoteOpenChange?.(noteOpen); }, [noteOpen]);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [highlights, setHighlights] = useState<Record<number, string>>(
     Object.fromEntries(initialHighlights.map((h) => [h.verse, h.color]))

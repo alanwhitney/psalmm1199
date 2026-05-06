@@ -27,6 +27,11 @@ export default function ReaderLayoutWrapper({
 }: Props) {
   const [verses, setVerses] = useState<{ number: number; text: string }[]>([]);
   const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
+  const [noteOpen, setNoteOpen] = useState(openNote ?? false);
+
+  const backHrefWithNote = backHref
+    ? `${backHref}${noteOpen ? `${backHref.includes("?") ? "&" : "?"}note=1` : ""}`
+    : undefined;
 
   return (
     <ReaderLayout
@@ -38,7 +43,7 @@ export default function ReaderLayoutWrapper({
       onHighlightVerse={setHighlightVerse}
       bookmarkPositions={bookmarkPositions}
       noteChapters={noteChapters}
-      backHref={backHref}
+      backHref={backHrefWithNote}
       backLabel={backLabel}
     >
       <ChapterView
@@ -52,6 +57,7 @@ export default function ReaderLayoutWrapper({
         initialArchivedNotes={initialArchivedNotes}
         initialHighlights={initialHighlights}
         openNote={openNote}
+        onNoteOpenChange={setNoteOpen}
         onVersesReady={setVerses}
         externalHighlight={highlightVerse}
       />
