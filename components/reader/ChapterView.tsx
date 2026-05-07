@@ -67,7 +67,12 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
   const [note, setNote] = useState<Note | null>(initialNote);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
-  useEffect(() => { onNoteOpenChange?.(noteOpen); }, [noteOpen]);
+  useEffect(() => {
+    onNoteOpenChange?.(noteOpen);
+    const url = new URL(window.location.href);
+    if (noteOpen) { url.searchParams.set("note", "1"); } else { url.searchParams.delete("note"); }
+    window.history.replaceState(null, "", url.toString());
+  }, [noteOpen]);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [highlights, setHighlights] = useState<Record<number, string>>(
     Object.fromEntries(initialHighlights.map((h) => [h.verse, h.color]))
