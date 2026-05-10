@@ -774,7 +774,12 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               </div>
             )}
             {note?.updated_at && (
-              <span className="text-[11px] text-ink-muted">Saved {new Date(note.updated_at).toLocaleDateString()}</span>
+              <span className="text-[11px] text-ink-muted">Saved {(() => {
+                const d = new Date(note.updated_at);
+                return d.toDateString() === new Date().toDateString()
+                  ? d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+                  : d.toLocaleDateString();
+              })()}</span>
             )}
             <button
               onClick={() => saveNote()}
