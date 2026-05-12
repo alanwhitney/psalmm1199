@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Archive, ArchiveRestore } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square } from "lucide-react";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
 import { detectBibleRefs } from "@/lib/bible-refs";
 
 // Private-use-area sentinels matching bible-api.ts
-const WJ_OPEN = "";
-const WJ_CLOSE = "";
+const WJ_OPEN = "";
+const WJ_CLOSE = "";
 
 function stripWj(text: string): string {
-  return text.replace(/[]/g, "");
+  return text.replace(/[]/g, "");
 }
 
 function renderWjText(text: string): React.ReactNode {
@@ -49,8 +49,7 @@ interface ChapterViewProps {
   chapterData: Chapter | null;
   user: { id: string; email?: string } | null;
   initialBookmark: BookmarkType | null;
-  initialNote: Note | null;
-  initialArchivedNotes: Note[];
+  initialNotes: Note[];
   initialHighlights: Highlight[];
   openNote?: boolean;
   onNoteOpenChange?: (open: boolean) => void;
@@ -58,14 +57,13 @@ interface ChapterViewProps {
   externalHighlight?: number | null;
 }
 
-export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNote, initialArchivedNotes, initialHighlights, openNote, onNoteOpenChange, onVersesReady, externalHighlight }: ChapterViewProps) {
+export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNotes, initialHighlights, openNote, onNoteOpenChange, onVersesReady, externalHighlight }: ChapterViewProps) {
   const router = useRouter();
   const supabase = createClient();
   const { showSections } = useTheme();
   const redLetter = translation === "KJV" || translation === "NIV";
 
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
-  const [note, setNote] = useState<Note | null>(initialNote);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
   useEffect(() => {
     onNoteOpenChange?.(noteOpen);
@@ -73,10 +71,22 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     if (noteOpen) { url.searchParams.set("note", "1"); } else { url.searchParams.delete("note"); }
     window.history.replaceState(null, "", url.toString());
   }, [noteOpen]);
+
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [highlights, setHighlights] = useState<Record<number, string>>(
     Object.fromEntries(initialHighlights.map((h) => [h.verse, h.color]))
   );
+
+  // Notes state — verse-keyed
+  const [notes, setNotes] = useState<Note[]>(initialNotes);
+  const [noteContents, setNoteContents] = useState<Record<number, string>>(
+    Object.fromEntries(initialNotes.map(n => [n.verse, n.content]))
+  );
+  const [expandedVerse, setExpandedVerse] = useState<number | null>(null);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSavedVerse, setNoteSavedVerse] = useState<number | null>(null);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const pendingSave = useRef<{ verse: number; content: string } | null>(null);
 
   const speech = useSpeech(chapterData?.verses ?? []);
 
@@ -170,18 +180,11 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     const parts = text.split(/([HG]\d+)/g);
     return parts.map((part, i) =>
       /^[HG]\d+$/.test(part) ? (
-        <button
-          key={i}
-          onClick={() => loadLinkedEntry(part)}
-          className={`font-mono text-[10px] cursor-pointer border-none bg-transparent px-0 underline decoration-dotted ${
-            linkedEntry?.id === part ? "text-gold" : "text-gold-muted"
-          }`}
-        >
+        <button key={i} onClick={() => loadLinkedEntry(part)}
+          className={`font-mono text-[10px] cursor-pointer border-none bg-transparent px-0 underline decoration-dotted ${linkedEntry?.id === part ? "text-gold" : "text-gold-muted"}`}>
           {part}
         </button>
-      ) : (
-        <span key={i}>{part}</span>
-      )
+      ) : <span key={i}>{part}</span>
     );
   }
 
@@ -207,15 +210,9 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      // Fallback for browsers that deny clipboard permission
       const el = document.createElement("textarea");
-      el.value = text;
-      el.style.position = "fixed";
-      el.style.opacity = "0";
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
+      el.value = text; el.style.position = "fixed"; el.style.opacity = "0";
+      document.body.appendChild(el); el.select(); document.execCommand("copy"); document.body.removeChild(el);
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -223,11 +220,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   async function shareVerse(num: number) {
     const text = formatShareText(num);
-    if (navigator.share) {
-      await navigator.share({ text });
-    } else {
-      await copyVerse(num);
-    }
+    if (navigator.share) { await navigator.share({ text }); } else { await copyVerse(num); }
   }
 
   async function toggleHighlight(verseNum: number, colorId: string) {
@@ -237,8 +230,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     try {
       if (highlights[verseNum] === colorId) {
         const { error } = await supabase.from("highlights").delete()
-          .eq("user_id", user.id).eq("book_id", book.id)
-          .eq("chapter", chapter).eq("verse", verseNum).eq("translation", translation);
+          .eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapter).eq("verse", verseNum).eq("translation", translation);
         if (!error) setHighlights((prev) => { const next = { ...prev }; delete next[verseNum]; return next; });
       } else {
         const { error } = await supabase.from("highlights").upsert(
@@ -247,21 +239,9 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
         );
         if (!error) setHighlights((prev) => ({ ...prev, [verseNum]: colorId }));
       }
-    } finally {
-      highlightInFlight.current = false;
-    }
+    } finally { highlightInFlight.current = false; }
   }
 
-  const [noteContent, setNoteContent] = useState(initialNote?.content ?? "");
-  const [noteSaving, setNoteSaving] = useState(false);
-  const [noteSaved, setNoteSaved] = useState(false);
-  const [archivedNotes, setArchivedNotes] = useState<Note[]>(initialArchivedNotes);
-  const [archivedPanelOpen, setArchivedPanelOpen] = useState(false);
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
-  const noteRef = useRef(note);
-  const noteContentRef = useRef(noteContent);
-  useEffect(() => { noteRef.current = note; }, [note]);
-  useEffect(() => { noteContentRef.current = noteContent; }, [noteContent]);
   const [bookmarkLabel, setBookmarkLabel] = useState(initialBookmark?.label ?? "");
   const [labelEditing, setLabelEditing] = useState(false);
 
@@ -272,8 +252,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       if (!error) { setBookmark(null); setBookmarkLabel(""); router.refresh(); }
     } else {
       const { data } = await supabase.from("bookmarks").insert({
-        user_id: user.id, book_id: book.id, book_name: book.name,
-        chapter, translation, label: "",
+        user_id: user.id, book_id: book.id, book_name: book.name, chapter, translation, label: "",
       }).select().single();
       if (data) { setBookmark(data); setLabelEditing(true); router.refresh(); }
     }
@@ -285,72 +264,58 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     if (!error) { setLabelEditing(false); setBookmark({ ...bookmark, label: bookmarkLabel }); router.refresh(); }
   }
 
-  const saveNote = useCallback(async (content?: string) => {
+  const saveNote = useCallback(async (verseNum: number, content: string) => {
     if (!user) return;
-    const textToSave = content ?? noteContentRef.current;
-    if (!textToSave.trim() && !noteRef.current) return;
+    if (!content.trim()) return;
     setNoteSaving(true);
-    if (noteRef.current) {
-      const { data, error } = await supabase.from("notes").update({ content: textToSave }).eq("id", noteRef.current.id).select().single();
-      if (!error && data) { setNote(data); noteRef.current = data; }
+    const existing = notes.find(n => n.verse === verseNum);
+    if (existing) {
+      const { data } = await supabase.from("notes").update({ content }).eq("id", existing.id).select().single();
+      if (data) setNotes(prev => prev.map(n => n.verse === verseNum ? data : n));
     } else {
-      const { data, error } = await supabase.from("notes").insert({
-        user_id: user.id, book_id: book.id, book_name: book.name,
-        chapter, translation, content: textToSave,
+      const { data } = await supabase.from("notes").insert({
+        user_id: user.id, book_id: book.id, book_name: book.name, chapter, verse: verseNum, content,
       }).select().single();
-      if (!error && data) { setNote(data); noteRef.current = data; }
+      if (data) setNotes(prev => [...prev, data].sort((a, b) => a.verse - b.verse));
     }
     setNoteSaving(false);
-    setNoteSaved(true);
-    setTimeout(() => setNoteSaved(false), 2000);
-  }, [user, book, chapter, translation, supabase]);
+    setNoteSavedVerse(verseNum);
+    setTimeout(() => setNoteSavedVerse(null), 2000);
+  }, [user, book, chapter, supabase, notes]);
 
-  function handleNoteChange(value: string) {
-    setNoteContent(value);
+  function handleNoteChange(verseNum: number, value: string) {
+    setNoteContents(prev => ({ ...prev, [verseNum]: value }));
+    pendingSave.current = { verse: verseNum, content: value };
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => saveNote(value), 1500);
+    autoSaveTimer.current = setTimeout(() => {
+      if (pendingSave.current) saveNote(pendingSave.current.verse, pendingSave.current.content);
+    }, 1500);
   }
 
-  async function deleteNote(noteId?: string) {
-    const targetId = noteId ?? note?.id;
-    if (!targetId) return;
-    const { error } = await supabase.from("notes").delete().eq("id", targetId);
-    if (!error) {
-      if (noteId && noteId !== note?.id) {
-        setArchivedNotes(prev => prev.filter(n => n.id !== noteId));
-      } else {
-        setNote(null); setNoteContent(""); setNoteOpen(false);
-      }
-    }
+  async function deleteNote(noteId: string, verseNum: number) {
+    await supabase.from("notes").delete().eq("id", noteId);
+    setNotes(prev => prev.filter(n => n.id !== noteId));
+    setNoteContents(prev => { const next = { ...prev }; delete next[verseNum]; return next; });
+    if (expandedVerse === verseNum) setExpandedVerse(null);
   }
 
-  async function archiveActiveNote() {
-    if (!note) return;
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    const latestContent = noteContentRef.current;
-    const { error } = await supabase.from("notes").update({ content: latestContent, archived: true }).eq("id", note.id);
-    if (!error) {
-      setArchivedNotes(prev => [{ ...note, content: latestContent, archived: true }, ...prev]);
-      setNote(null);
-      setNoteContent("");
+  function openNoteForVerse(verseNum: number) {
+    if (!user) { router.push("/auth/login"); return; }
+    if (!(verseNum in noteContents)) {
+      const existing = notes.find(n => n.verse === verseNum);
+      setNoteContents(prev => ({ ...prev, [verseNum]: existing?.content ?? "" }));
     }
+    setNoteOpen(true);
+    setExpandedVerse(verseNum);
   }
 
-  async function unarchiveNote(id: string) {
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    if (note) {
-      await supabase.from("notes").update({ content: noteContentRef.current, archived: true }).eq("id", note.id);
-      setArchivedNotes(prev => [{ ...note, content: noteContentRef.current, archived: true }, ...prev]);
-    }
-    const { error } = await supabase.from("notes").update({ archived: false }).eq("id", id);
-    if (!error) {
-      const restored = archivedNotes.find(n => n.id === id);
-      if (restored) {
-        setNote({ ...restored, archived: false });
-        setNoteContent(restored.content);
-        setArchivedNotes(prev => prev.filter(n => n.id !== id));
-      }
-    }
+  function savedLabel(verseNum: number): string {
+    const n = notes.find(n => n.verse === verseNum);
+    if (!n?.updated_at) return "";
+    const d = new Date(n.updated_at);
+    return d.toDateString() === new Date().toDateString()
+      ? d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      : d.toLocaleDateString();
   }
 
   if (!chapterData) {
@@ -376,456 +341,359 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const scrollRef = useRef<HTMLDivElement>(null);
   const [readProgress, setReadProgress] = useState(0);
 
+  // Sorted list of verse numbers that have notes or open drafts
+  const noteVerses = Array.from(new Set([
+    ...notes.map(n => n.verse),
+    ...Object.keys(noteContents).map(Number),
+  ])).sort((a, b) => a - b);
+
   return (
     <div className="flex h-full relative">
       {/* Reading pane */}
       <div className="flex-1 flex flex-col min-h-0">
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto"
-        onScroll={() => {
-          const el = scrollRef.current;
-          if (!el) return;
-          const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
-          setReadProgress(isNaN(pct) ? 0 : Math.min(pct, 1));
-        }}
-      >
-        <div className="max-w-[680px] mx-auto py-12 px-8">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto"
+          onScroll={() => {
+            const el = scrollRef.current;
+            if (!el) return;
+            const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
+            setReadProgress(isNaN(pct) ? 0 : Math.min(pct, 1));
+          }}
+        >
+          <div className="max-w-[680px] mx-auto py-12 px-8">
 
-          {/* Chapter heading */}
-          <div className="mb-8">
-            <h2 className="text-[22px] font-light mb-1 text-ink-primary font-reading">
-              {book.name}
-            </h2>
-            <p className="text-xs text-ink-muted">Chapter {chapter} · {translation}</p>
-            <div className="h-px mt-4 bg-gradient-to-r from-transparent via-gold-muted to-transparent" />
-          </div>
-
-          {/* Action bar */}
-          <div className="flex items-center gap-[10px] mb-8 flex-wrap">
-            {/* Bookmark button */}
-            <button
-              onClick={toggleBookmark}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${
-                bookmark
-                  ? "border-gold-muted bg-gold/[9%] text-gold"
-                  : "border-line-subtle bg-surface-raised text-ink-secondary"
-              }`}
-            >
-              {bookmark ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
-              {bookmark ? "Bookmarked" : "Bookmark"}
-            </button>
-
-            {/* Label editor */}
-            {bookmark && labelEditing && (
-              <div className="flex items-center gap-2">
-                <input
-                  autoFocus
-                  value={bookmarkLabel}
-                  onChange={(e) => setBookmarkLabel(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && saveLabel()}
-                  placeholder='Label (e.g. "Morning reading")'
-                  className="text-xs px-[10px] py-[5px] bg-surface-overlay border border-line-subtle rounded-md text-ink-primary outline-none w-[180px]"
-                />
-                <button onClick={saveLabel} className="text-xs text-gold bg-transparent border-none cursor-pointer">Save</button>
-              </div>
-            )}
-            {bookmark && !labelEditing && bookmark.label && (
-              <button onClick={() => setLabelEditing(true)} className="text-xs text-ink-muted italic bg-transparent border-none cursor-pointer">
-                &quot;{bookmark.label}&quot;
-              </button>
-            )}
-
-            {/* Notes button */}
-            <button
-              onClick={() => { if (!user) { router.push("/auth/login"); return; } setNoteOpen(o => !o); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${
-                noteOpen
-                  ? "border-line bg-surface-overlay text-ink-primary"
-                  : note
-                  ? "border-line-subtle bg-surface-raised text-ink-primary"
-                  : "border-line-subtle bg-surface-raised text-ink-secondary"
-              }`}
-            >
-              <StickyNote size={13} />
-              {note ? "View note" : "Add note"}
-            </button>
-
-            {/* Listen button */}
-            {speech.supported && speech.state === "idle" && (
-              <button
-                onClick={speech.play}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-line-subtle bg-surface-raised text-ink-secondary"
-              >
-                <Volume2 size={13} /> Listen
-              </button>
-            )}
-          </div>
-
-          {/* Audio player bar */}
-          {speech.state !== "idle" && (
-            <div className="flex items-center gap-3 px-3 py-2 mb-6 bg-surface-overlay border border-line-subtle rounded-lg">
-              <button
-                onClick={speech.state === "playing" ? speech.pause : speech.resume}
-                className="bg-transparent border-none cursor-pointer text-ink-primary p-0.5 flex"
-                aria-label={speech.state === "playing" ? "Pause" : "Resume"}
-              >
-                {speech.state === "playing" ? <Pause size={15} /> : <Play size={15} />}
-              </button>
-              <div className="flex-1 text-[12px] text-ink-secondary">
-                {speech.activeVerse ? `Verse ${speech.activeVerse}` : "Listening…"}
-              </div>
-              <div className="flex items-center gap-1">
-                {[0.8, 1, 1.25, 1.5].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => speech.changeRate(r)}
-                    className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer border-none ${
-                      speech.rate === r ? "bg-gold text-surface font-bold" : "bg-transparent text-ink-muted"
-                    }`}
-                  >
-                    {r}×
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={speech.stop}
-                className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5 flex"
-                aria-label="Stop"
-              >
-                <Square size={13} />
-              </button>
+            {/* Chapter heading */}
+            <div className="mb-8">
+              <h2 className="text-[22px] font-light mb-1 text-ink-primary font-reading">{book.name}</h2>
+              <p className="text-xs text-ink-muted">Chapter {chapter} · {translation}</p>
+              <div className="h-px mt-4 bg-gradient-to-r from-transparent via-gold-muted to-transparent" />
             </div>
-          )}
 
-          {/* Bible text */}
-          <div className={`font-reading leading-loose text-ink-primary${redLetter ? " red-letter" : ""}`} style={{ fontSize: "var(--reading-font-size, 17px)" }}>
-            {chapterData.verses.map((verse) => {
-              const lines = verse.text.split("\n");
-              const isSelected = selectedVerse === verse.number;
-              const isNarrating = speech.activeVerse === verse.number;
-              const highlightColor = HIGHLIGHT_COLORS.find((c) => c.id === highlights[verse.number]);
-              const heading = showSections ? chapterData.headings?.[verse.number] : null;
-              return (
-                <div key={verse.number}>
-                  {heading && (
-                    <h3 className="section-heading">{heading}</h3>
-                  )}
-                  <p
-                    id={`v${verse.number}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => selectVerse(verse.number)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectVerse(verse.number); } }}
-                    className={`m-0 mb-1 px-2 py-1 rounded-md cursor-pointer border-l-2 transition-colors ${
-                      isSelected ? "border-l-gold" : isNarrating ? "border-l-gold" : "border-l-transparent"
-                    }`}
-                    style={{
-                      backgroundColor: isNarrating
-                        ? "rgba(201,168,76,0.15)"
-                        : isSelected
-                        ? "rgba(201,168,76,0.07)"
-                        : highlightColor?.bg,
-                      transition: "background-color 0.3s ease",
-                    }}
-                  >
-                    <sup className={`text-[10px] font-bold mr-[3px] font-sans align-super select-none ${isSelected ? "text-gold" : "text-gold-muted"}`}>
-                      {verse.number}
-                    </sup>
-                    {lines.map((line, i) => (
-                      <span key={i}>
-                        {i > 0 && <br />}
-                        {i > 0 && <span className="inline-block w-6" />}
-                        {renderWjText(line.trim())}
-                      </span>
-                    ))}
-                  </p>
+            {/* Action bar */}
+            <div className="flex items-center gap-[10px] mb-8 flex-wrap">
+              {/* Bookmark */}
+              <button onClick={toggleBookmark} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${bookmark ? "border-gold-muted bg-gold/[9%] text-gold" : "border-line-subtle bg-surface-raised text-ink-secondary"}`}>
+                {bookmark ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+                {bookmark ? "Bookmarked" : "Bookmark"}
+              </button>
+              {bookmark && labelEditing && (
+                <div className="flex items-center gap-2">
+                  <input autoFocus value={bookmarkLabel} onChange={(e) => setBookmarkLabel(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveLabel()}
+                    placeholder='Label (e.g. "Morning reading")'
+                    className="text-xs px-[10px] py-[5px] bg-surface-overlay border border-line-subtle rounded-md text-ink-primary outline-none w-[180px]" />
+                  <button onClick={saveLabel} className="text-xs text-gold bg-transparent border-none cursor-pointer">Save</button>
+                </div>
+              )}
+              {bookmark && !labelEditing && bookmark.label && (
+                <button onClick={() => setLabelEditing(true)} className="text-xs text-ink-muted italic bg-transparent border-none cursor-pointer">&quot;{bookmark.label}&quot;</button>
+              )}
 
-                  {/* Verse popover */}
-                  {isSelected && (
-                    <div className="px-2 py-1.5 mb-2 bg-surface-raised border border-line-subtle rounded-lg">
-                      {/* Copy / share row */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[11px] text-ink-muted mr-1">
-                          {book.name} {chapter}:{verse.number}
+              {/* Notes */}
+              <button
+                onClick={() => { if (!user) { router.push("/auth/login"); return; } setNoteOpen(o => !o); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${noteOpen ? "border-line bg-surface-overlay text-ink-primary" : notes.length > 0 ? "border-line-subtle bg-surface-raised text-ink-primary" : "border-line-subtle bg-surface-raised text-ink-secondary"}`}
+              >
+                <StickyNote size={13} />
+                Notes{notes.length > 0 ? ` · ${notes.length}` : ""}
+              </button>
+
+              {/* Listen */}
+              {speech.supported && speech.state === "idle" && (
+                <button onClick={speech.play} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-line-subtle bg-surface-raised text-ink-secondary">
+                  <Volume2 size={13} /> Listen
+                </button>
+              )}
+            </div>
+
+            {/* Audio player bar */}
+            {speech.state !== "idle" && (
+              <div className="flex items-center gap-3 px-3 py-2 mb-6 bg-surface-overlay border border-line-subtle rounded-lg">
+                <button onClick={speech.state === "playing" ? speech.pause : speech.resume} className="bg-transparent border-none cursor-pointer text-ink-primary p-0.5 flex" aria-label={speech.state === "playing" ? "Pause" : "Resume"}>
+                  {speech.state === "playing" ? <Pause size={15} /> : <Play size={15} />}
+                </button>
+                <div className="flex-1 text-[12px] text-ink-secondary">{speech.activeVerse ? `Verse ${speech.activeVerse}` : "Listening…"}</div>
+                <div className="flex items-center gap-1">
+                  {[0.8, 1, 1.25, 1.5].map((r) => (
+                    <button key={r} onClick={() => speech.changeRate(r)} className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer border-none ${speech.rate === r ? "bg-gold text-surface font-bold" : "bg-transparent text-ink-muted"}`}>{r}×</button>
+                  ))}
+                </div>
+                <button onClick={speech.stop} className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5 flex" aria-label="Stop"><Square size={13} /></button>
+              </div>
+            )}
+
+            {/* Bible text */}
+            <div className={`font-reading leading-loose text-ink-primary${redLetter ? " red-letter" : ""}`} style={{ fontSize: "var(--reading-font-size, 17px)" }}>
+              {chapterData.verses.map((verse) => {
+                const lines = verse.text.split("\n");
+                const isSelected = selectedVerse === verse.number;
+                const isNarrating = speech.activeVerse === verse.number;
+                const highlightColor = HIGHLIGHT_COLORS.find((c) => c.id === highlights[verse.number]);
+                const heading = showSections ? chapterData.headings?.[verse.number] : null;
+                const hasNote = notes.some(n => n.verse === verse.number);
+                return (
+                  <div key={verse.number}>
+                    {heading && <h3 className="section-heading">{heading}</h3>}
+                    <p
+                      id={`v${verse.number}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => selectVerse(verse.number)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectVerse(verse.number); } }}
+                      className={`m-0 mb-1 px-2 py-1 rounded-md cursor-pointer border-l-2 transition-colors ${isSelected ? "border-l-gold" : isNarrating ? "border-l-gold" : "border-l-transparent"}`}
+                      style={{ backgroundColor: isNarrating ? "rgba(201,168,76,0.15)" : isSelected ? "rgba(201,168,76,0.07)" : highlightColor?.bg, transition: "background-color 0.3s ease" }}
+                    >
+                      <sup className={`text-[10px] font-bold mr-[3px] font-sans align-super select-none ${isSelected ? "text-gold" : "text-gold-muted"}`}>
+                        {verse.number}
+                      </sup>
+                      {hasNote && <span className="inline-block w-[5px] h-[5px] rounded-full mb-[3px] mr-[3px] align-super select-none" style={{ backgroundColor: "var(--gold)", opacity: 0.7 }} />}
+                      {lines.map((line, i) => (
+                        <span key={i}>
+                          {i > 0 && <br />}
+                          {i > 0 && <span className="inline-block w-6" />}
+                          {renderWjText(line.trim())}
                         </span>
-                        <button
-                          onClick={() => copyVerse(verse.number)}
-                          className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${copied ? "text-gold" : "text-ink-secondary"}`}
-                        >
-                          {copied ? <Check size={12} /> : <Copy size={12} />}
-                          {copied ? "Copied!" : "Copy"}
-                        </button>
-                        {typeof navigator !== "undefined" && "share" in navigator && (
-                          <button
-                            onClick={() => shareVerse(verse.number)}
-                            className="flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold text-ink-secondary cursor-pointer"
-                          >
-                            <Share2 size={12} /> Share
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setSelectedVerse(null)}
-                          className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5"
-                        >
-                          <XIcon size={13} />
-                        </button>
-                      </div>
-                      {/* Highlight row */}
-                      <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-line-subtle">
-                        <span className="text-[10px] text-ink-muted">Highlight</span>
-                        <div className="flex items-center gap-1.5">
-                          {HIGHLIGHT_COLORS.map((c) => (
-                            <button
-                              key={c.id}
-                              onClick={() => toggleHighlight(verse.number, c.id)}
-                              style={{ backgroundColor: c.swatch }}
-                              className={`w-4 h-4 rounded-full cursor-pointer border-2 transition-transform ${
-                                highlights[verse.number] === c.id ? "border-ink-primary scale-110" : "border-transparent"
-                              }`}
-                              aria-label={`Highlight ${c.id}`}
-                            />
-                          ))}
-                        </div>
-                        {highlights[verse.number] && (
-                          <button
-                            onClick={() => toggleHighlight(verse.number, highlights[verse.number])}
-                            className="ml-auto flex items-center gap-1 text-[10px] text-ink-muted bg-transparent border-none cursor-pointer px-1"
-                            aria-label="Remove highlight"
-                          >
-                            <XIcon size={11} /> Remove
-                          </button>
-                        )}
-                      </div>
+                      ))}
+                    </p>
 
-                      {/* Cross-references row */}
-                      <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
-                        <button
-                          onClick={() => loadXrefs(verse.number)}
-                          className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none"
-                        >
-                          {xrefOpen === verse.number ? "▲ Hide cross-refs" : "▼ Cross-refs"}
-                        </button>
-                        {xrefOpen === verse.number && (
-                          <div className="mt-2">
-                            {xrefLoading && !xrefCache[verse.number] ? (
-                              <p className="text-[10px] text-ink-muted m-0">Loading…</p>
-                            ) : (xrefCache[verse.number] ?? []).length === 0 ? (
-                              <p className="text-[10px] text-ink-muted m-0">No cross-references found.</p>
-                            ) : (
-                              <div className="flex flex-wrap gap-1">
-                                {(xrefCache[verse.number] ?? []).map(ref => (
-                                  <a
-                                    key={ref.href + ref.verse}
-                                    href={`${ref.href}?t=${translation}#v${ref.verse}`}
-                                    className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay border border-line-subtle text-gold no-underline font-semibold"
-                                  >
-                                    {ref.label}
-                                  </a>
-                                ))}
+                    {/* Verse popover */}
+                    {isSelected && (
+                      <div className="px-2 py-1.5 mb-2 bg-surface-raised border border-line-subtle rounded-lg">
+                        {/* Copy / share row */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[11px] text-ink-muted mr-1">{book.name} {chapter}:{verse.number}</span>
+                          <button onClick={() => copyVerse(verse.number)} className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${copied ? "text-gold" : "text-ink-secondary"}`}>
+                            {copied ? <Check size={12} /> : <Copy size={12} />}
+                            {copied ? "Copied!" : "Copy"}
+                          </button>
+                          {typeof navigator !== "undefined" && "share" in navigator && (
+                            <button onClick={() => shareVerse(verse.number)} className="flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold text-ink-secondary cursor-pointer">
+                              <Share2 size={12} /> Share
+                            </button>
+                          )}
+                          <button onClick={() => setSelectedVerse(null)} className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
+                            <XIcon size={13} />
+                          </button>
+                        </div>
+
+                        {/* Highlight row */}
+                        <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-line-subtle">
+                          <span className="text-[10px] text-ink-muted">Highlight</span>
+                          <div className="flex items-center gap-1.5">
+                            {HIGHLIGHT_COLORS.map((c) => (
+                              <button key={c.id} onClick={() => toggleHighlight(verse.number, c.id)} style={{ backgroundColor: c.swatch }}
+                                className={`w-4 h-4 rounded-full cursor-pointer border-2 transition-transform ${highlights[verse.number] === c.id ? "border-ink-primary scale-110" : "border-transparent"}`}
+                                aria-label={`Highlight ${c.id}`} />
+                            ))}
+                          </div>
+                          {highlights[verse.number] && (
+                            <button onClick={() => toggleHighlight(verse.number, highlights[verse.number])} className="ml-auto flex items-center gap-1 text-[10px] text-ink-muted bg-transparent border-none cursor-pointer px-1" aria-label="Remove highlight">
+                              <XIcon size={11} /> Remove
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Note row */}
+                        <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-line-subtle">
+                          <button
+                            onClick={() => openNoteForVerse(verse.number)}
+                            className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${hasNote ? "text-gold" : "text-ink-secondary"}`}
+                          >
+                            <StickyNote size={12} />
+                            {hasNote ? "Edit note" : "Add note"}
+                          </button>
+                        </div>
+
+                        {/* Cross-references row */}
+                        <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
+                          <button onClick={() => loadXrefs(verse.number)} className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none">
+                            {xrefOpen === verse.number ? "▲ Hide cross-refs" : "▼ Cross-refs"}
+                          </button>
+                          {xrefOpen === verse.number && (
+                            <div className="mt-2">
+                              {xrefLoading && !xrefCache[verse.number] ? (
+                                <p className="text-[10px] text-ink-muted m-0">Loading…</p>
+                              ) : (xrefCache[verse.number] ?? []).length === 0 ? (
+                                <p className="text-[10px] text-ink-muted m-0">No cross-references found.</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-1">
+                                  {(xrefCache[verse.number] ?? []).map(ref => (
+                                    <a key={ref.href + ref.verse} href={`${ref.href}?t=${translation}#v${ref.verse}`}
+                                      className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay border border-line-subtle text-gold no-underline font-semibold">
+                                      {ref.label}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Strong's row — KJV/NKJV only */}
+                        {(translation === "KJV" || translation === "NKJV") && (
+                          <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
+                            <button onClick={() => loadStrongs(verse.number)} className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none">
+                              {strongsOpen === verse.number ? "▲ Hide Strong's" : "▼ Strong's"}
+                            </button>
+                            {strongsOpen === verse.number && (
+                              <div className="mt-2">
+                                {strongsLoading && !strongsCache[verse.number] ? (
+                                  <p className="text-[10px] text-ink-muted m-0">Loading…</p>
+                                ) : (strongsCache[verse.number] ?? []).length === 0 ? (
+                                  <p className="text-[10px] text-ink-muted m-0">No data for this verse.</p>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1">
+                                    {(strongsCache[verse.number] ?? []).map((w, i) => {
+                                      const key = `${verse.number}-${i}`;
+                                      const isActive = activeStrongsKey === key;
+                                      return (
+                                        <button key={key} onClick={() => setActiveStrongsKey(isActive ? null : key)}
+                                          className={`flex flex-col items-start px-1.5 py-0.5 rounded text-left cursor-pointer border transition-colors ${isActive ? "border-gold bg-gold/[8%]" : "border-line-subtle bg-surface-overlay"}`}>
+                                          <span className="text-[10px] text-ink-primary leading-tight">{w.word}</span>
+                                          <span className="text-[9px] font-mono text-gold-muted">{w.strongs}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                {activeStrongsKey && activeStrongsKey.startsWith(`${verse.number}-`) && (() => {
+                                  const idx = parseInt(activeStrongsKey.split("-")[1], 10);
+                                  const entry = strongsCache[verse.number]?.[idx];
+                                  if (!entry) return null;
+                                  return (
+                                    <div className="mt-2 p-2 bg-surface-overlay border border-gold-muted/30 rounded-md">
+                                      <div className="flex items-baseline gap-2 flex-wrap">
+                                        <span className="text-[10px] font-mono text-gold">{entry.strongs}</span>
+                                        {entry.lemma && <span className="text-[13px] font-semibold text-ink-primary">{entry.lemma}</span>}
+                                        {entry.xlit && <span className="text-[10px] text-ink-muted italic">{entry.xlit}</span>}
+                                      </div>
+                                      {entry.def && <p className="text-[11px] text-ink-secondary mt-0.5 m-0 leading-snug">{entry.def}</p>}
+                                      {entry.derivation && <p className="text-[10px] text-ink-muted mt-1 m-0 leading-snug">{renderDerivation(entry.derivation)}</p>}
+                                      {linkedEntryLoading && <p className="text-[10px] text-ink-muted mt-1.5 m-0">Loading…</p>}
+                                      {linkedEntry && !linkedEntryLoading && (
+                                        <div className="mt-1.5 pt-1.5 border-t border-line-subtle/60">
+                                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                                            <span className="text-[9px] font-mono text-gold">{linkedEntry.id}</span>
+                                            {linkedEntry.lemma && <span className="text-[11px] font-semibold text-ink-primary">{linkedEntry.lemma}</span>}
+                                            {linkedEntry.xlit && <span className="text-[9px] text-ink-muted italic">{linkedEntry.xlit}</span>}
+                                          </div>
+                                          {linkedEntry.def && <p className="text-[10px] text-ink-secondary mt-0.5 m-0 leading-snug">{linkedEntry.def}</p>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             )}
                           </div>
                         )}
                       </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-                      {/* Strong's row — KJV/NKJV only */}
-                      {(translation === "KJV" || translation === "NKJV") && (
-                        <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
-                          <button
-                            onClick={() => loadStrongs(verse.number)}
-                            className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none"
-                          >
-                            {strongsOpen === verse.number ? "▲ Hide Strong's" : "▼ Strong's"}
-                          </button>
-
-                          {strongsOpen === verse.number && (
-                            <div className="mt-2">
-                              {strongsLoading && !strongsCache[verse.number] ? (
-                                <p className="text-[10px] text-ink-muted m-0">Loading…</p>
-                              ) : (strongsCache[verse.number] ?? []).length === 0 ? (
-                                <p className="text-[10px] text-ink-muted m-0">No data for this verse.</p>
-                              ) : (
-                                <div className="flex flex-wrap gap-1">
-                                  {(strongsCache[verse.number] ?? []).map((w, i) => {
-                                    const key = `${verse.number}-${i}`;
-                                    const isActive = activeStrongsKey === key;
-                                    return (
-                                      <button
-                                        key={key}
-                                        onClick={() => setActiveStrongsKey(isActive ? null : key)}
-                                        className={`flex flex-col items-start px-1.5 py-0.5 rounded text-left cursor-pointer border transition-colors ${
-                                          isActive
-                                            ? "border-gold bg-gold/[8%]"
-                                            : "border-line-subtle bg-surface-overlay"
-                                        }`}
-                                      >
-                                        <span className="text-[10px] text-ink-primary leading-tight">{w.word}</span>
-                                        <span className="text-[9px] font-mono text-gold-muted">{w.strongs}</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
-                              {/* Definition card */}
-                              {activeStrongsKey && activeStrongsKey.startsWith(`${verse.number}-`) && (() => {
-                                const idx = parseInt(activeStrongsKey.split("-")[1], 10);
-                                const entry = strongsCache[verse.number]?.[idx];
-                                if (!entry) return null;
-                                return (
-                                  <div className="mt-2 p-2 bg-surface-overlay border border-gold-muted/30 rounded-md">
-                                    <div className="flex items-baseline gap-2 flex-wrap">
-                                      <span className="text-[10px] font-mono text-gold">{entry.strongs}</span>
-                                      {entry.lemma && <span className="text-[13px] font-semibold text-ink-primary">{entry.lemma}</span>}
-                                      {entry.xlit && <span className="text-[10px] text-ink-muted italic">{entry.xlit}</span>}
-                                    </div>
-                                    {entry.def && <p className="text-[11px] text-ink-secondary mt-0.5 m-0 leading-snug">{entry.def}</p>}
-                                    {entry.derivation && (
-                                      <p className="text-[10px] text-ink-muted mt-1 m-0 leading-snug">
-                                        {renderDerivation(entry.derivation)}
-                                      </p>
-                                    )}
-                                    {linkedEntryLoading && (
-                                      <p className="text-[10px] text-ink-muted mt-1.5 m-0">Loading…</p>
-                                    )}
-                                    {linkedEntry && !linkedEntryLoading && (
-                                      <div className="mt-1.5 pt-1.5 border-t border-line-subtle/60">
-                                        <div className="flex items-baseline gap-1.5 flex-wrap">
-                                          <span className="text-[9px] font-mono text-gold">{linkedEntry.id}</span>
-                                          {linkedEntry.lemma && <span className="text-[11px] font-semibold text-ink-primary">{linkedEntry.lemma}</span>}
-                                          {linkedEntry.xlit && <span className="text-[9px] text-ink-muted italic">{linkedEntry.xlit}</span>}
-                                        </div>
-                                        {linkedEntry.def && <p className="text-[10px] text-ink-secondary mt-0.5 m-0 leading-snug">{linkedEntry.def}</p>}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Prev / Next navigation */}
-          <div className="flex justify-between items-center mt-16 pt-6 border-t border-t-line-subtle">
-            {prevChapter ? (
-              <a href={`/bible/${book.id}/${prevChapter}?t=${translation}`} className="flex items-center gap-1.5 text-[13px] text-ink-secondary no-underline">
-                <ChevronLeft size={16} /> Chapter {prevChapter}
-              </a>
-            ) : <span />}
-            {nextChapter ? (
-              <a href={`/bible/${book.id}/${nextChapter}?t=${translation}`} className="flex items-center gap-1.5 text-[13px] text-ink-secondary no-underline">
-                Chapter {nextChapter} <ChevronRight size={16} />
-              </a>
-            ) : <span />}
+            {/* Prev / Next navigation */}
+            <div className="flex justify-between items-center mt-16 pt-6 border-t border-t-line-subtle">
+              {prevChapter ? (
+                <a href={`/bible/${book.id}/${prevChapter}?t=${translation}`} className="flex items-center gap-1.5 text-[13px] text-ink-secondary no-underline">
+                  <ChevronLeft size={16} /> Chapter {prevChapter}
+                </a>
+              ) : <span />}
+              {nextChapter ? (
+                <a href={`/bible/${book.id}/${nextChapter}?t=${translation}`} className="flex items-center gap-1.5 text-[13px] text-ink-secondary no-underline">
+                  Chapter {nextChapter} <ChevronRight size={16} />
+                </a>
+              ) : <span />}
+            </div>
           </div>
         </div>
-      </div>
-      <div className="h-[3px] bg-line-subtle shrink-0">
-        <div className="h-full" style={{ width: `${readProgress * 100}%`, backgroundColor: "var(--gold)", opacity: 0.8, transition: "width 75ms linear" }} />
-      </div>
+        <div className="h-[3px] bg-line-subtle shrink-0">
+          <div className="h-full" style={{ width: `${readProgress * 100}%`, backgroundColor: "var(--gold)", opacity: 0.8, transition: "width 75ms linear" }} />
+        </div>
       </div>
 
-      {/* Notes panel — full overlay on mobile, side panel on desktop */}
+      {/* Notes panel */}
       {noteOpen && (
         <div className="absolute inset-0 z-20 lg:static lg:inset-auto lg:z-auto lg:w-80 border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
-          <div className="px-4 py-3 border-b border-b-line-subtle flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-b-line-subtle flex items-center justify-between shrink-0">
             <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
             <button onClick={() => setNoteOpen(false)} className="bg-transparent border-none cursor-pointer text-ink-muted text-lg leading-none p-0">×</button>
           </div>
-          <textarea
-            className="flex-1 bg-transparent text-ink-primary text-[13px] p-4 resize-none border-none outline-none leading-[1.7] font-[inherit]"
-            placeholder={`Write your notes for ${book.name} ${chapter}…`}
-            value={noteContent}
-            onChange={(e) => handleNoteChange(e.target.value)}
-          />
-          {(() => {
-            const refs = noteContent.trim() ? detectBibleRefs(noteContent, translation) : [];
-            return refs.length > 0 ? (
-              <div className="px-4 py-2 border-t border-t-line-subtle flex flex-wrap gap-1.5">
-                {refs.map(ref => (
-                  <a
-                    key={ref.href}
-                    href={ref.href}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay border border-line-subtle text-gold no-underline font-semibold"
-                  >
-                    {ref.label}
-                  </a>
-                ))}
-              </div>
-            ) : null;
-          })()}
-          <div className="px-4 py-3 border-t border-t-line-subtle flex items-center justify-between gap-2">
-            {note && (
-              <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => deleteNote()} title="Delete note" className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex">
-                  <Trash2 size={14} />
-                </button>
-                <button onClick={archiveActiveNote} title="Archive note" className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex">
-                  <Archive size={14} />
-                </button>
-              </div>
-            )}
-            {note?.updated_at && (
-              <span className="text-[11px] text-ink-muted">Saved {(() => {
-                const d = new Date(note.updated_at);
-                return d.toDateString() === new Date().toDateString()
-                  ? d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-                  : d.toLocaleDateString();
-              })()}</span>
-            )}
-            <button
-              onClick={() => saveNote()}
-              disabled={noteSaving}
-              className={`ml-auto px-[14px] py-1.5 bg-gold text-surface text-xs font-bold rounded-md border-none ${noteSaving ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-            >
-              {noteSaving ? "Saving…" : noteSaved ? "Saved ✓" : "Save"}
-            </button>
-          </div>
 
-          {/* Archived notes */}
-          {archivedNotes.length > 0 && (
-            <div className="border-t border-t-line-subtle shrink-0">
-              <button
-                onClick={() => setArchivedPanelOpen(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-none cursor-pointer"
-              >
-                <span className="text-[11px] text-ink-muted font-semibold flex items-center gap-1.5">
-                  <Archive size={11} /> Archived ({archivedNotes.length})
-                </span>
-                <ChevronRight size={11} className="text-ink-muted" style={{ transform: archivedPanelOpen ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }} />
-              </button>
-              {archivedPanelOpen && (
-                <div className="px-3 pb-3 flex flex-col gap-2 max-h-48 overflow-y-auto">
-                  {archivedNotes.map(arNote => (
-                    <div key={arNote.id} className="bg-surface-overlay border border-line-subtle rounded-lg px-3 py-2">
-                      <p className="text-[12px] text-ink-secondary m-0 leading-[1.5] italic mb-2 line-clamp-2">
-                        &ldquo;{arNote.content.length > 100 ? arNote.content.slice(0, 100) + "…" : arNote.content}&rdquo;
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-ink-muted">{new Date(arNote.updated_at).toLocaleDateString()}</span>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => unarchiveNote(arNote.id)} title="Restore" className="flex items-center gap-1 text-[10px] text-gold bg-transparent border-none cursor-pointer px-1 py-0.5">
-                            <ArchiveRestore size={11} /> Restore
-                          </button>
-                          <button onClick={() => deleteNote(arNote.id)} title="Delete" className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5 flex">
-                            <Trash2 size={11} />
-                          </button>
+          <div className="flex-1 overflow-y-auto">
+            {noteVerses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-12 px-6 text-center">
+                <StickyNote size={24} className="text-ink-muted mb-3" />
+                <p className="text-[13px] text-ink-muted leading-relaxed">Tap any verse then &ldquo;Add note&rdquo; to start</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-line-subtle">
+                {noteVerses.map(verseNum => {
+                  const savedNote = notes.find(n => n.verse === verseNum);
+                  const content = noteContents[verseNum] ?? "";
+                  const isExpanded = expandedVerse === verseNum;
+                  const refs = isExpanded && content.trim() ? detectBibleRefs(content, translation) : [];
+                  return (
+                    <div key={verseNum}>
+                      <button
+                        onClick={() => setExpandedVerse(isExpanded ? null : verseNum)}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 bg-transparent border-none cursor-pointer text-left"
+                      >
+                        <span className="text-[11px] font-bold text-gold shrink-0">v.{verseNum}</span>
+                        {!isExpanded && (
+                          <span className="text-[11px] text-ink-muted truncate flex-1 italic">
+                            {content ? (content.length > 50 ? content.slice(0, 50) + "…" : content) : "Empty"}
+                          </span>
+                        )}
+                        <ChevronRight size={11} className="text-ink-muted shrink-0 ml-auto" style={{ transform: isExpanded ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }} />
+                      </button>
+                      {isExpanded && (
+                        <div className="px-4 pb-4">
+                          <textarea
+                            autoFocus
+                            className="w-full bg-surface-overlay text-ink-primary text-[13px] p-3 resize-none border border-line-subtle rounded-lg outline-none leading-[1.7] font-[inherit] min-h-[120px]"
+                            placeholder={`Note for verse ${verseNum}…`}
+                            value={content}
+                            onChange={(e) => handleNoteChange(verseNum, e.target.value)}
+                          />
+                          {refs.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {refs.map(ref => (
+                                <a key={ref.href} href={ref.href} className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay border border-line-subtle text-gold no-underline font-semibold">
+                                  {ref.label}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center gap-2">
+                              {savedNote && (
+                                <button onClick={() => deleteNote(savedNote.id, verseNum)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex" title="Delete note">
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                              {savedNote?.updated_at && (
+                                <span className="text-[11px] text-ink-muted">{savedLabel(verseNum)}</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => saveNote(verseNum, content)}
+                              disabled={noteSaving}
+                              className={`px-[14px] py-1.5 bg-gold text-surface text-xs font-bold rounded-md border-none ${noteSaving ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                            >
+                              {noteSaving ? "Saving…" : noteSavedVerse === verseNum ? "Saved ✓" : "Save"}
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

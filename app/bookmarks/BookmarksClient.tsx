@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bookmark, StickyNote, Trash2, ChevronRight, CalendarDays, Search, X, ChevronsRight, Archive } from "lucide-react";
+import { Bookmark, StickyNote, Trash2, ChevronRight, CalendarDays, Search, X, ChevronsRight } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
@@ -23,7 +23,7 @@ function nextBookmarkPosition(bookId: string, chapter: number): { bookId: string
 
 interface Props {
   bookmarks: BookmarkType[];
-  notes: Pick<Note, "id" | "book_id" | "book_name" | "chapter" | "translation" | "updated_at" | "content" | "archived">[];
+  notes: Pick<Note, "id" | "book_id" | "book_name" | "chapter" | "verse" | "updated_at" | "content">[];
   userId: string;
   userPlans: { id: string; plan_id: string; started_at: string; translation: string; active: boolean }[];
   completions: { plan_id: string; day: number }[];
@@ -37,17 +37,12 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
   const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) ?? "bookmarks");
   const [bookmarks, setBookmarks] = useState(initial);
   const [noteSearch, setNoteSearch] = useState("");
-  const [archivedOpen, setArchivedOpen] = useState(false);
-
-  const activeNotes = notes.filter(n => !n.archived);
-  const archivedNotes = notes.filter(n => n.archived);
 
   const matchesSearch = (n: Props["notes"][0]) =>
     n.content.toLowerCase().includes(noteSearch.toLowerCase()) ||
-    `${n.book_name} ${n.chapter}`.toLowerCase().includes(noteSearch.toLowerCase());
+    `${n.book_name} ${n.chapter}:${n.verse}`.toLowerCase().includes(noteSearch.toLowerCase());
 
-  const filteredActive = noteSearch.trim() ? activeNotes.filter(matchesSearch) : activeNotes;
-  const filteredArchived = noteSearch.trim() ? archivedNotes.filter(matchesSearch) : archivedNotes;
+  const filteredNotes = noteSearch.trim() ? notes.filter(matchesSearch) : notes;
 
   async function deleteBookmark(id: string) {
     await supabase.from("bookmarks").delete().eq("id", id);
@@ -63,7 +58,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "bookmarks", label: "Bookmarks", count: bookmarks.length },
-    { key: "notes", label: "Notes", count: activeNotes.length },
+    { key: "notes", label: "Notes", count: notes.length },
     { key: "plan", label: "Reading Plan" },
   ];
 
@@ -73,7 +68,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
           My Reading
         </h1>
         <p className="text-[13px] text-ink-muted mb-8">
-          {bookmarks.length} bookmark{bookmarks.length !== 1 ? "s" : ""} · {activeNotes.length} note{activeNotes.length !== 1 ? "s" : ""}{archivedNotes.length > 0 ? ` · ${archivedNotes.length} archived` : ""} · {userPlans.length} plan{userPlans.length !== 1 ? "s" : ""}
+          {bookmarks.length} bookmark{bookmarks.length !== 1 ? "s" : ""} · {notes.length} note{notes.length !== 1 ? "s" : ""} · {userPlans.length} plan{userPlans.length !== 1 ? "s" : ""}
         </p>
 
         {/* Tabs */}
@@ -130,37 +125,13 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
                 )}
               </div>
 
-              {/* Active notes */}
-              {filteredActive.length === 0 && !noteSearch && activeNotes.length === 0 ? null : filteredActive.length === 0 ? (
+              {filteredNotes.length === 0 ? (
                 <div className="text-center py-8 text-ink-muted text-[13px]">
                   No notes matching &ldquo;{noteSearch}&rdquo;
                 </div>
               ) : (
-                <div className="flex flex-col gap-2 mb-4">
-                  {filteredActive.map(note => <NoteCard key={note.id} note={note} query={noteSearch} />)}
-                </div>
-              )}
-
-              {/* Archived notes */}
-              {(archivedNotes.length > 0 || (noteSearch && filteredArchived.length > 0)) && (
-                <div className="mt-2">
-                  <button
-                    onClick={() => setArchivedOpen(o => !o)}
-                    className="flex items-center gap-2 text-[11px] text-ink-muted font-semibold bg-transparent border-none cursor-pointer px-0 py-1 mb-2"
-                  >
-                    <Archive size={12} />
-                    Archived ({archivedNotes.length})
-                    <ChevronRight size={11} style={{ transform: archivedOpen ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }} />
-                  </button>
-                  {archivedOpen && (
-                    <div className="flex flex-col gap-2">
-                      {filteredArchived.length === 0 ? (
-                        <div className="text-center py-6 text-ink-muted text-[13px]">No archived notes matching &ldquo;{noteSearch}&rdquo;</div>
-                      ) : (
-                        filteredArchived.map(note => <NoteCard key={note.id} note={note} query={noteSearch} archived />)
-                      )}
-                    </div>
-                  )}
+                <div className="flex flex-col gap-2">
+                  {filteredNotes.map(note => <NoteCard key={note.id} note={note} query={noteSearch} />)}
                 </div>
               )}
             </>
@@ -251,22 +222,19 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
   );
 }
 
-function NoteCard({ note, query = "", archived = false }: { note: Props["notes"][0]; query?: string; archived?: boolean }) {
+function NoteCard({ note, query = "" }: { note: Props["notes"][0]; query?: string }) {
   const snippet = noteSnippet(note.content, query);
   return (
-    <Link href={`/bible/${note.book_id}/${note.chapter}?t=${note.translation}&note=1`} className={`no-underline block border rounded-[10px] px-4 py-[14px] ${archived ? "bg-surface border-line-subtle opacity-70" : "bg-surface-raised border-line-subtle"}`}>
+    <Link href={`/bible/${note.book_id}/${note.chapter}?note=1#v${note.verse}`} className="no-underline block border rounded-[10px] px-4 py-[14px] bg-surface-raised border-line-subtle">
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold text-ink-primary m-0">{note.book_name} {note.chapter}</p>
-          {archived && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-overlay text-ink-muted font-semibold">Archived</span>}
-        </div>
+        <p className="text-sm font-semibold text-ink-primary m-0">{note.book_name} {note.chapter}:{note.verse}</p>
         <span className="text-[11px] text-ink-muted shrink-0">{new Date(note.updated_at).toLocaleDateString()}</span>
       </div>
       <p className="text-[13px] text-ink-secondary m-0 leading-[1.6] italic">
         &quot;<HighlightedText text={snippet} query={query} />&quot;
       </p>
       <p className="text-[11px] text-ink-muted mt-2 mb-0 flex items-center gap-1">
-        {note.translation} · Click to open <ChevronRight size={10} />
+        Click to open <ChevronRight size={10} />
       </p>
     </Link>
   );

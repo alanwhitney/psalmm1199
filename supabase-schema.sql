@@ -48,14 +48,13 @@ create table if not exists notes (
   book_id     text not null,
   book_name   text not null,
   chapter     integer not null,
-  translation text not null default 'KJV',
+  verse       integer not null,
   content     text not null default '',
-  archived    boolean not null default false,
   created_at  timestamptz default now() not null,
   updated_at  timestamptz default now() not null,
 
-  -- Multiple notes per chapter allowed (archived notes stay alongside active note)
-  -- Migration: ALTER TABLE notes DROP CONSTRAINT notes_user_id_book_id_chapter_translation_key;
+  -- One note per user per book/chapter/verse (translation-agnostic)
+  unique(user_id, book_id, chapter, verse)
 );
 
 -- Row Level Security

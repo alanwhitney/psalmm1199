@@ -51,9 +51,8 @@ export interface Note {
   book_id: string;
   book_name: string;
   chapter: number;
-  translation: Translation;
+  verse: number;
   content: string;
-  archived: boolean;
   created_at: string;
   updated_at: string;
 }

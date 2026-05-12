@@ -46,8 +46,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser();
 
   let bookmark = null;
-  let note: Note | null = null;
-  let archivedNotes: Note[] = [];
+  let initialNotes: Note[] = [];
   let highlights: Highlight[] = [];
 
   let bookmarkPositions: Record<string, number> = {};
@@ -56,15 +55,13 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   if (user) {
     const [{ data: bm }, { data: nt }, { data: hl }, { data: allBookmarks }, { data: allNotes }] = await Promise.all([
       supabase.from("bookmarks").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).maybeSingle(),
-      supabase.from("notes").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation).order("updated_at", { ascending: false }),
+      supabase.from("notes").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).order("verse", { ascending: true }),
       supabase.from("highlights").select("*").eq("user_id", user.id).eq("book_id", book.id).eq("chapter", chapterNum).eq("translation", translation),
       supabase.from("bookmarks").select("book_id, chapter").eq("user_id", user.id),
       supabase.from("notes").select("book_id, chapter").eq("user_id", user.id),
     ]);
     bookmark = bm;
-    const chapterNotes = (nt ?? []) as Note[];
-    note = chapterNotes.find(n => !n.archived) ?? null;
-    archivedNotes = chapterNotes.filter(n => n.archived);
+    initialNotes = (nt ?? []) as Note[];
     highlights = hl ?? [];
     bookmarkPositions = Object.fromEntries((allBookmarks ?? []).map(b => [b.book_id, b.chapter]));
     for (const n of allNotes ?? []) {
@@ -80,8 +77,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       user={user}
       chapterData={chapterData}
       initialBookmark={bookmark}
-      initialNote={note}
-      initialArchivedNotes={archivedNotes}
+      initialNotes={initialNotes}
       initialHighlights={highlights}
       openNote={noteParam === "1"}
       bookmarkPositions={bookmarkPositions}
