@@ -8,11 +8,11 @@ import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight }
 import { detectBibleRefs } from "@/lib/bible-refs";
 
 // Private-use-area sentinels matching bible-api.ts
-const WJ_OPEN = "";
-const WJ_CLOSE = "";
+const WJ_OPEN = "";
+const WJ_CLOSE = "";
 
 function stripWj(text: string): string {
-  return text.replace(/[]/g, "");
+    return text.replace(/[]/g, "");
 }
 
 function renderWjText(text: string): React.ReactNode {
