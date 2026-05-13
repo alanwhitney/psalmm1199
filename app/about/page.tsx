@@ -63,7 +63,7 @@ export default async function AboutPage() {
           },
           {
             heading: "About us",
-            body: "This is a simple tool created by Alan Whitney in South West East Corinth in Central Maine. Entirely for his personal use. It's free, it's simple. Enjoy. God Bless."
+            body: "This is a simple tool created by Alan Whitney, largely with AI, in South West East Corinth in Central Maine. Entirely for his personal use. It's free, it's simple. Enjoy. God Bless."
           },
         ].map(({ heading, body }) => (
           <div key={heading} className="mb-7">
