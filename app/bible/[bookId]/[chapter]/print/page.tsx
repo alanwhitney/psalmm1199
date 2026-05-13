@@ -199,7 +199,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
           <p style={{ color: "#888", fontStyle: "italic" }}>Chapter text unavailable.</p>
         )}
 
-        <div className="footer">psalm119.app · {title}</div>
+        <div className="footer">psalm1199.com · {title}</div>
       </body>
     </html>
   );

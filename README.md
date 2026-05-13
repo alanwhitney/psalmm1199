@@ -2,7 +2,7 @@
 
 A clean, distraction-free Bible reading app with bookmarks, verse notes, highlights, a reading plan, and a prayer journal. Built with Next.js 14, Supabase, and Tailwind CSS.
 
-**Live app:** [psalm119.app](https://psalm119.app)
+**Live app:** [psalm1199.com](https://psalm1199.com)
 
 ---
 
