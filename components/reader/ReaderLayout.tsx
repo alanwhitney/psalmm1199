@@ -143,13 +143,9 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
         {[{ label: "Old Testament", books: OT_BOOKS }, { label: "New Testament", books: NT_BOOKS }].map(({ label, books }) => (
           <div key={label}>
             <p className="text-[10px] uppercase tracking-[0.1em] text-ink-muted font-semibold px-4 pt-4 pb-1 m-0">{label}</p>
-            {books.map((b) => {
-              const progressChapter = b.id === book.id ? chapter : bookmarkPositions[b.id] ?? null;
-              const progress = progressChapter !== null ? progressChapter / b.chapters : null;
-              return (
-                <BookItem key={b.id} b={b} active={b.id === book.id} activeChapter={b.id === book.id ? chapter : null} onSelect={(ch) => goTo(b.id, ch)} progress={progress} notedChapters={noteChapters[b.id] ?? []} />
-              );
-            })}
+            {books.map((b) => (
+              <BookItem key={b.id} b={b} active={b.id === book.id} activeChapter={b.id === book.id ? chapter : null} onSelect={(ch) => goTo(b.id, ch)} />
+            ))}
           </div>
         ))}
       </div>
@@ -258,8 +254,8 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   );
 }
 
-function BookItem({ b, active, activeChapter, onSelect, progress, notedChapters }: {
-  b: Book; active: boolean; activeChapter: number | null; onSelect: (ch: number) => void; progress: number | null; notedChapters: number[];
+function BookItem({ b, active, activeChapter, onSelect }: {
+  b: Book; active: boolean; activeChapter: number | null; onSelect: (ch: number) => void;
 }) {
   const [expanded, setExpanded] = useState(active);
   const ref = useRef<HTMLDivElement>(null);
@@ -270,33 +266,20 @@ function BookItem({ b, active, activeChapter, onSelect, progress, notedChapters 
     <div ref={ref}>
       <button
         onClick={() => setExpanded(e => !e)}
-        className={`w-full text-left px-4 py-1.5 bg-transparent border-none cursor-pointer text-[13px] flex flex-col gap-0.5 ${active ? "text-gold" : "text-ink-secondary"}`}
+        className={`w-full text-left px-4 py-1.5 bg-transparent border-none cursor-pointer text-[13px] flex items-center justify-between ${active ? "text-gold" : "text-ink-secondary"}`}
       >
-        <div className="flex items-center justify-between w-full">
-          <span>{b.name}</span>
-          <ChevronRight size={12} style={{ transform: expanded ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }} />
-        </div>
-        {progress !== null && (
-          <div className="w-full h-[2px] rounded-full bg-line-subtle overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${Math.min(progress * 100, 100)}%`, backgroundColor: "var(--gold)", opacity: 0.7 }} />
-          </div>
-        )}
+        <span>{b.name}</span>
+        <ChevronRight size={12} style={{ transform: expanded ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }} />
       </button>
       {expanded && (
         <div className="px-4 pb-2 pt-1 flex flex-wrap gap-1">
-          {Array.from({ length: b.chapters }, (_, i) => i + 1).map((ch) => {
-            const hasNote = notedChapters.includes(ch);
-            return (
-              <button key={ch} onClick={() => onSelect(ch)} className={`relative w-7 h-7 text-[11px] rounded cursor-pointer font-semibold border-none ${
-                activeChapter === ch ? "bg-gold text-surface" : "bg-surface-overlay text-ink-secondary"
-              }`}>
-                {ch}
-                {hasNote && (
-                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--gold)" }} />
-                )}
-              </button>
-            );
-          })}
+          {Array.from({ length: b.chapters }, (_, i) => i + 1).map((ch) => (
+            <button key={ch} onClick={() => onSelect(ch)} className={`w-7 h-7 text-[11px] rounded cursor-pointer font-semibold border-none ${
+              activeChapter === ch ? "bg-gold text-surface" : "bg-surface-overlay text-ink-secondary"
+            }`}>
+              {ch}
+            </button>
+          ))}
         </div>
       )}
     </div>
