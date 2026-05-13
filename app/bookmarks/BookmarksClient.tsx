@@ -31,18 +31,26 @@ interface Props {
 
 type Tab = "bookmarks" | "notes" | "plan";
 
+const NOTE_PAGE_SIZES = [25, 50, 75, 100] as const;
+type NotePageSize = typeof NOTE_PAGE_SIZES[number];
+
 export default function BookmarksClient({ bookmarks: initial, notes, userId, userPlans, completions }: Props) {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) ?? "bookmarks");
   const [bookmarks, setBookmarks] = useState(initial);
   const [noteSearch, setNoteSearch] = useState("");
+  const [notePage, setNotePage] = useState(1);
+  const [notePageSize, setNotePageSize] = useState<NotePageSize>(25);
 
   const matchesSearch = (n: Props["notes"][0]) =>
     n.content.toLowerCase().includes(noteSearch.toLowerCase()) ||
     `${n.book_name} ${n.chapter}:${n.verse}`.toLowerCase().includes(noteSearch.toLowerCase());
 
   const filteredNotes = noteSearch.trim() ? notes.filter(matchesSearch) : notes;
+  const paginated = notes.length > 25;
+  const totalPages = paginated ? Math.ceil(filteredNotes.length / notePageSize) : 1;
+  const visibleNotes = paginated ? filteredNotes.slice((notePage - 1) * notePageSize, notePage * notePageSize) : filteredNotes;
 
   async function deleteBookmark(id: string) {
     await supabase.from("bookmarks").delete().eq("id", id);
@@ -114,7 +122,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
                 <input
                   type="text"
                   value={noteSearch}
-                  onChange={(e) => setNoteSearch(e.target.value)}
+                  onChange={(e) => { setNoteSearch(e.target.value); setNotePage(1); }}
                   placeholder="Search notes…"
                   className="w-full pl-9 pr-8 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-sm text-ink-primary placeholder:text-ink-muted outline-none focus:border-line"
                 />
@@ -130,9 +138,51 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
                   No notes matching &ldquo;{noteSearch}&rdquo;
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {filteredNotes.map(note => <NoteCard key={note.id} note={note} query={noteSearch} />)}
-                </div>
+                <>
+                  <div className="flex flex-col gap-2">
+                    {visibleNotes.map(note => <NoteCard key={note.id} note={note} query={noteSearch} />)}
+                  </div>
+
+                  {paginated && (
+                    <div className="flex items-center justify-between mt-5 pt-4 border-t border-line-subtle">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] text-ink-muted">Per page:</span>
+                        {NOTE_PAGE_SIZES.map(size => (
+                          <button
+                            key={size}
+                            onClick={() => { setNotePageSize(size); setNotePage(1); }}
+                            className={`text-[12px] px-2.5 py-1 rounded-md border cursor-pointer bg-transparent ${
+                              notePageSize === size
+                                ? "border-gold text-gold"
+                                : "border-line-subtle text-ink-muted"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] text-ink-muted">
+                          {(notePage - 1) * notePageSize + 1}–{Math.min(notePage * notePageSize, filteredNotes.length)} of {filteredNotes.length}
+                        </span>
+                        <button
+                          onClick={() => setNotePage(p => Math.max(1, p - 1))}
+                          disabled={notePage === 1}
+                          className="text-[12px] px-2.5 py-1 rounded-md border border-line-subtle text-ink-muted cursor-pointer bg-transparent disabled:opacity-30"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          onClick={() => setNotePage(p => Math.min(totalPages, p + 1))}
+                          disabled={notePage === totalPages}
+                          className="text-[12px] px-2.5 py-1 rounded-md border border-line-subtle text-ink-muted cursor-pointer bg-transparent disabled:opacity-30"
+                        >
+                          ›
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )
