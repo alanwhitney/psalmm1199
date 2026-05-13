@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer } from "lucide-react";
+import Link from "next/link";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
@@ -404,6 +405,16 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                   <Volume2 size={13} /> Listen
                 </button>
               )}
+
+              {/* Print */}
+              <Link
+                href={`/bible/${book.id}/${chapter}/print?t=${translation}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-line-subtle bg-surface-raised text-ink-secondary no-underline"
+              >
+                <Printer size={13} /> Print
+              </Link>
             </div>
 
             {/* Audio player bar */}
