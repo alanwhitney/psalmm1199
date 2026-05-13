@@ -229,11 +229,11 @@ function BookmarkCard({ bookmark, onDelete, onAdvance }: { bookmark: BookmarkTyp
             title={`Advance to ${next.bookName} ${next.chapter}`}
             className="flex items-center gap-1 text-xs text-ink-secondary px-[10px] py-1.5 bg-surface-overlay rounded-md border border-line-subtle cursor-pointer"
           >
-            <ChevronsRight size={12} /> {next.label}
+            <ChevronsRight size={12} /><span className="hidden sm:inline"> {next.label}</span>
           </button>
         )}
         <Link href={`/bible/${bookmark.book_id}/${bookmark.chapter}?t=${bookmark.translation}`} className="flex items-center gap-1 text-xs text-ink-secondary no-underline px-[10px] py-1.5 bg-surface-overlay rounded-md border border-line-subtle">
-          Open <ChevronRight size={12} />
+          <span className="hidden sm:inline">Open </span><ChevronRight size={12} />
         </Link>
         {confirming ? (
           <div className="flex gap-1.5">

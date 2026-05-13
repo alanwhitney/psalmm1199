@@ -210,9 +210,9 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
             {backHref && (
               <>
                 <Link href={backHref} className="text-[13px] text-ink-muted no-underline shrink-0">
-                  ← {backLabel}
+                  ←<span className="hidden sm:inline"> {backLabel}</span>
                 </Link>
-                <span className="text-line-subtle shrink-0">·</span>
+                <span className="text-line-subtle shrink-0 hidden sm:inline">·</span>
               </>
             )}
             <h1 className="text-sm font-semibold text-ink-primary m-0 truncate">
@@ -230,7 +230,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
             {prevChapter
               ? <Link href={`/bible/${book.id}/${prevChapter}?t=${translation}`} className="p-1.5 text-ink-muted flex no-underline"><ChevronLeft size={16} /></Link>
               : <span className="p-1.5 opacity-20 flex"><ChevronLeft size={16} /></span>}
-            <span className="text-[11px] text-ink-muted px-1">{chapter} / {book.chapters}</span>
+            <span className="text-[11px] text-ink-muted px-1 hidden sm:inline">{chapter} / {book.chapters}</span>
             {nextChapter
               ? <Link href={`/bible/${book.id}/${nextChapter}?t=${translation}`} className="p-1.5 text-ink-muted flex no-underline"><ChevronRight size={16} /></Link>
               : <span className="p-1.5 opacity-20 flex"><ChevronRight size={16} /></span>}
