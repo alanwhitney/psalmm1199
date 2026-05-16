@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Plus, Check, Trash2, X, BookHeart, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Prayer } from "@/types";
@@ -25,6 +25,10 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editSavedId, setEditSavedId] = useState<string | null>(null);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const pendingEdit = useRef<{ prayer: Prayer; title: string; content: string } | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "answered">("all");
   const [search, setSearch] = useState("");
 
@@ -66,13 +70,38 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
     setExpandedId(prayer.id);
   }
 
-  async function saveEdit(prayer: Prayer) {
-    if (!editContent.trim()) return;
-    const updates = { title: editTitle.trim() || null, content: editContent.trim() };
+  async function saveEdit(prayer: Prayer, title: string, content: string) {
+    if (!content.trim()) return;
+    setEditSaving(true);
+    const updates = { title: title.trim() || null, content: content.trim() };
     const { error } = await supabase.from("prayers").update(updates).eq("id", prayer.id);
+    setEditSaving(false);
     if (!error) {
-      setPrayers(prayers.map(p => p.id === prayer.id ? { ...p, ...updates, title: updates.title ?? undefined } : p));
-      setEditingId(null);
+      setPrayers(prev => prev.map(p => p.id === prayer.id ? { ...p, ...updates, title: updates.title ?? undefined } : p));
+      setEditSavedId(prayer.id);
+      setTimeout(() => setEditSavedId(null), 2000);
+    }
+  }
+
+  function handleEditChange(prayer: Prayer, newTitle: string, newContent: string) {
+    setEditTitle(newTitle);
+    setEditContent(newContent);
+    pendingEdit.current = { prayer, title: newTitle, content: newContent };
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      if (pendingEdit.current) {
+        const { prayer, title, content } = pendingEdit.current;
+        saveEdit(prayer, title, content);
+      }
+    }, 1000);
+  }
+
+  function flushEdit() {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    if (pendingEdit.current) {
+      const { prayer, title, content } = pendingEdit.current;
+      pendingEdit.current = null;
+      saveEdit(prayer, title, content);
     }
   }
 
@@ -287,26 +316,25 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
                     <input
                       type="text"
                       value={editTitle}
-                      onChange={e => setEditTitle(e.target.value)}
+                      onChange={e => handleEditChange(prayer, e.target.value, editContent)}
                       placeholder="Title (optional)"
                       className={inputClass + " mb-3"}
                     />
                     <textarea
                       value={editContent}
-                      onChange={e => setEditContent(e.target.value)}
+                      onChange={e => handleEditChange(prayer, editTitle, e.target.value)}
                       rows={5}
                       className={inputClass + " mb-3"}
                     />
-                    <div className="flex gap-2 justify-end">
-                      <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-surface-overlay border border-line-subtle rounded-lg text-[13px] text-ink-muted cursor-pointer">
-                        Cancel
-                      </button>
+                    <div className="flex items-center gap-2 justify-end">
+                      <span className="text-[11px] text-ink-muted mr-auto">
+                        {editSaving && editingId === prayer.id ? "Saving…" : editSavedId === prayer.id ? "Saved" : ""}
+                      </span>
                       <button
-                        onClick={() => saveEdit(prayer)}
-                        disabled={!editContent.trim()}
-                        className={`px-3 py-1.5 bg-gold text-surface font-bold text-[13px] rounded-lg border-none cursor-pointer ${!editContent.trim() ? "opacity-50" : ""}`}
+                        onClick={() => { flushEdit(); setEditingId(null); }}
+                        className="px-3 py-1.5 bg-surface-overlay border border-line-subtle rounded-lg text-[13px] text-ink-muted cursor-pointer"
                       >
-                        Save
+                        Done
                       </button>
                     </div>
                   </div>
