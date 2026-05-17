@@ -19,7 +19,12 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
   const [composing, setComposing] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [composeSaving, setComposeSaving] = useState(false);
+  const [composeSaved, setComposeSaved] = useState(false);
+  const draftIdRef = useRef<string | null>(null);
+  const draftPrayerRef = useRef<Prayer | null>(null);
+  const composeTimer = useRef<NodeJS.Timeout | null>(null);
+  const pendingCompose = useRef<{ title: string; content: string } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -32,20 +37,66 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
   const [filter, setFilter] = useState<"all" | "active" | "answered">("all");
   const [search, setSearch] = useState("");
 
-  async function addPrayer() {
-    if (!content.trim()) return;
-    setSaving(true);
-    const { data, error } = await supabase
-      .from("prayers")
-      .insert({ user_id: userId, title: title.trim() || null, content: content.trim() })
-      .select()
-      .single();
-    setSaving(false);
-    if (error || !data) return;
-    setPrayers([data, ...prayers]);
-    setTitle("");
-    setContent("");
-    setComposing(false);
+  function handleComposeChange(newTitle: string, newContent: string) {
+    setTitle(newTitle);
+    setContent(newContent);
+    if (!newContent.trim()) return;
+    pendingCompose.current = { title: newTitle, content: newContent };
+    if (composeTimer.current) clearTimeout(composeTimer.current);
+    composeTimer.current = setTimeout(() => autoSaveCompose(), 1000);
+  }
+
+  async function autoSaveCompose() {
+    const pending = pendingCompose.current;
+    pendingCompose.current = null;
+    if (!pending || !pending.content.trim()) return;
+    setComposeSaving(true);
+    if (!draftIdRef.current) {
+      const { data } = await supabase
+        .from("prayers")
+        .insert({ user_id: userId, title: pending.title.trim() || null, content: pending.content.trim() })
+        .select().single();
+      if (data) { draftIdRef.current = data.id; draftPrayerRef.current = data; }
+    } else {
+      await supabase.from("prayers")
+        .update({ title: pending.title.trim() || null, content: pending.content.trim() })
+        .eq("id", draftIdRef.current);
+    }
+    setComposeSaving(false);
+    setComposeSaved(true);
+    setTimeout(() => setComposeSaved(false), 2000);
+  }
+
+  function finishCompose() {
+    if (composeTimer.current) clearTimeout(composeTimer.current);
+    const pending = pendingCompose.current;
+    pendingCompose.current = null;
+    const titleVal = title.trim() || null;
+    const contentVal = content.trim();
+    const currentDraftId = draftIdRef.current;
+    const draftData = draftPrayerRef.current;
+    draftIdRef.current = null;
+    draftPrayerRef.current = null;
+    setTitle(""); setContent(""); setComposing(false);
+    if (currentDraftId && draftData) {
+      if (pending) supabase.from("prayers").update({ title: titleVal, content: contentVal }).eq("id", currentDraftId);
+      setPrayers(prev => [{ ...draftData, title: titleVal ?? undefined, content: contentVal, updated_at: new Date().toISOString() }, ...prev]);
+    } else if (contentVal) {
+      supabase.from("prayers")
+        .insert({ user_id: userId, title: titleVal, content: contentVal })
+        .select().single()
+        .then(({ data }) => { if (data) setPrayers(prev => [data, ...prev]); });
+    }
+  }
+
+  function cancelCompose() {
+    if (composeTimer.current) clearTimeout(composeTimer.current);
+    pendingCompose.current = null;
+    const currentDraftId = draftIdRef.current;
+    draftIdRef.current = null;
+    draftPrayerRef.current = null;
+    if (currentDraftId) supabase.from("prayers").delete().eq("id", currentDraftId);
+    setTitle(""); setContent(""); setComposing(false);
   }
 
   async function toggleAnswered(prayer: Prayer) {
@@ -138,31 +189,34 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
             <input
               type="text"
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={e => handleComposeChange(e.target.value, content)}
               placeholder="Title (optional)"
               className={inputClass + " mb-3"}
             />
             <textarea
               value={content}
-              onChange={e => setContent(e.target.value)}
+              onChange={e => handleComposeChange(title, e.target.value)}
               placeholder="Write your prayer…"
               rows={5}
               className={inputClass + " mb-4"}
               autoFocus
             />
-            <div className="flex gap-2 justify-end">
+            <div className="flex items-center gap-2 justify-end">
+              <span className="text-[11px] text-ink-muted mr-auto">
+                {composeSaving ? "Saving…" : composeSaved ? "Saved" : ""}
+              </span>
               <button
-                onClick={() => { setComposing(false); setTitle(""); setContent(""); }}
+                onClick={cancelCompose}
                 className="px-4 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-[13px] text-ink-muted cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={addPrayer}
-                disabled={saving || !content.trim()}
-                className={`px-4 py-2 bg-gold text-surface font-bold text-[13px] rounded-lg border-none cursor-pointer ${saving || !content.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
+                onClick={finishCompose}
+                disabled={composeSaving || !content.trim()}
+                className={`px-4 py-2 bg-gold text-surface font-bold text-[13px] rounded-lg border-none cursor-pointer ${composeSaving || !content.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                {saving ? "Saving…" : "Save prayer"}
+                Done
               </button>
             </div>
           </div>
