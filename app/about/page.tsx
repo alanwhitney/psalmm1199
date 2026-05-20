@@ -76,6 +76,24 @@ export default async function AboutPage() {
           </div>
         ))}
 
+        <div className="mb-7">
+          <h2 className="text-[13px] font-bold text-gold uppercase tracking-[0.08em] mb-2">
+            Source code
+          </h2>
+          <p className="text-sm text-ink-secondary leading-[1.8] m-0">
+            This app is open source.{" "}
+            <a
+              href="https://github.com/alanwhitney/psalmm1199"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gold underline underline-offset-2"
+            >
+              View on GitHub
+            </a>
+            .
+          </p>
+        </div>
+
         {/* Scripture Credits */}
         <div className="mt-10 mb-2">
           <h2 className="text-[13px] font-bold text-gold uppercase tracking-[0.08em] mb-4">
