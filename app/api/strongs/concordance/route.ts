@@ -6,15 +6,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
+  const num = id.slice(1); // strip H or G prefix
   const res = await fetch(
-    `https://labs.openbible.info/api/concordance/?strongs=${id}`,
+    `https://bolls.life/search/KJV/?search=${encodeURIComponent(`<S>${num}</S>`)}`,
     { next: { revalidate: 31536000 } }
   );
 
   if (!res.ok) return NextResponse.json({ error: "Unavailable" }, { status: 502 });
 
-  const data = await res.json();
-  return NextResponse.json(data, {
-    headers: { "Cache-Control": "public, max-age=31536000, immutable" },
+  const raw = await res.json();
+  const verses = Array.isArray(raw)
+    ? raw.map((item: { book: number; chapter: number; verse: number }) => ({
+        b: item.book,
+        c: item.chapter,
+        v: item.verse,
+      }))
+    : [];
+
+  return NextResponse.json({ count: verses.length, verses }, {
+    headers: { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
   });
 }
