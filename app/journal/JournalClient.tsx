@@ -394,7 +394,7 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
                       </span>
                       <button
                         onClick={() => { flushEdit(); setEditingId(null); }}
-                        className="px-3 py-1.5 bg-surface-overlay border border-line-subtle rounded-lg text-[13px] text-ink-muted cursor-pointer"
+                        className="px-3 py-1.5 bg-gold text-surface font-bold text-[13px] rounded-lg border-none cursor-pointer"
                       >
                         Done
                       </button>
