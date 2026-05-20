@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
+import { BIBLE_BOOKS } from "@/lib/books";
 import { detectBibleRefs } from "@/lib/bible-refs";
 
 // Private-use-area sentinels matching bible-api.ts
@@ -148,6 +149,8 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [activeStrongsKey, setActiveStrongsKey] = useState<string | null>(null);
   const [linkedEntry, setLinkedEntry] = useState<{ id: string; lemma?: string; def?: string; xlit?: string; derivation?: string } | null>(null);
   const [linkedEntryLoading, setLinkedEntryLoading] = useState(false);
+  const [concordanceCache, setConcordanceCache] = useState<Record<string, { count: number; verses: { b: number; c: number; v: number }[] } | null>>({});
+  const [concordanceLoading, setConcordanceLoading] = useState(false);
 
   async function loadStrongs(verseNum: number) {
     if (strongsOpen === verseNum) { setStrongsOpen(null); setActiveStrongsKey(null); setLinkedEntry(null); return; }
@@ -188,6 +191,21 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       ) : <span key={i}>{part}</span>
     );
   }
+
+  useEffect(() => {
+    if (!activeStrongsKey) return;
+    const [verseStr, idxStr] = activeStrongsKey.split("-");
+    const entry = strongsCache[parseInt(verseStr, 10)]?.[parseInt(idxStr, 10)];
+    if (!entry) return;
+    const id = entry.strongs;
+    if (id in concordanceCache) return;
+    setConcordanceLoading(true);
+    fetch(`/api/strongs/concordance?id=${id}`)
+      .then(r => r.json())
+      .then(data => setConcordanceCache(prev => ({ ...prev, [id]: data?.verses ? data : null })))
+      .catch(() => setConcordanceCache(prev => ({ ...prev, [id]: null })))
+      .finally(() => setConcordanceLoading(false));
+  }, [activeStrongsKey, strongsCache, concordanceCache]);
 
   function selectVerse(num: number) {
     setSelectedVerse(prev => {
@@ -576,9 +594,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                                       <div className="flex items-baseline gap-2 flex-wrap">
                                         <span className="text-[10px] font-mono text-gold">{entry.strongs}</span>
                                         {entry.lemma && <span className="text-[13px] font-semibold text-ink-primary">{entry.lemma}</span>}
-                                        {entry.xlit && <span className="text-[10px] text-ink-muted italic">{entry.xlit}</span>}
                                       </div>
-                                      {entry.def && <p className="text-[11px] text-ink-secondary mt-0.5 m-0 leading-snug">{entry.def}</p>}
+                                      {entry.xlit && (
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                          <span className="text-[9px] text-ink-muted uppercase tracking-wider font-semibold">pronounced</span>
+                                          <span className="text-[12px] text-ink-secondary italic">{entry.xlit}</span>
+                                        </div>
+                                      )}
+                                      {entry.def && <p className="text-[11px] text-ink-secondary mt-1 m-0 leading-snug">{entry.def}</p>}
                                       {entry.derivation && <p className="text-[10px] text-ink-muted mt-1 m-0 leading-snug">{renderDerivation(entry.derivation)}</p>}
                                       {linkedEntryLoading && <p className="text-[10px] text-ink-muted mt-1.5 m-0">Loading…</p>}
                                       {linkedEntry && !linkedEntryLoading && (
@@ -591,6 +614,41 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                                           {linkedEntry.def && <p className="text-[10px] text-ink-secondary mt-0.5 m-0 leading-snug">{linkedEntry.def}</p>}
                                         </div>
                                       )}
+                                      {/* Concordance */}
+                                      {(() => {
+                                        const conc = concordanceCache[entry.strongs];
+                                        if (concordanceLoading && !(entry.strongs in concordanceCache)) {
+                                          return <p className="text-[10px] text-ink-muted mt-1.5 m-0 pt-1.5 border-t border-line-subtle/60">Loading uses…</p>;
+                                        }
+                                        if (!conc || !conc.verses?.length) return null;
+                                        const shown = conc.verses.slice(0, 15);
+                                        const remaining = conc.count - shown.length;
+                                        return (
+                                          <div className="mt-1.5 pt-1.5 border-t border-line-subtle/60">
+                                            <p className="text-[9px] text-ink-muted uppercase tracking-wider font-semibold m-0 mb-1.5">
+                                              Used {conc.count} {conc.count === 1 ? "time" : "times"} in the Bible
+                                            </p>
+                                            <div className="flex flex-wrap gap-1">
+                                              {shown.map((ref, i) => {
+                                                const bk = BIBLE_BOOKS[ref.b - 1];
+                                                if (!bk) return null;
+                                                return (
+                                                  <a
+                                                    key={i}
+                                                    href={`/bible/${bk.id}/${ref.c}?t=${translation}#v${ref.v}`}
+                                                    className="text-[9px] px-1.5 py-0.5 rounded bg-surface-raised border border-line-subtle text-ink-secondary no-underline hover:border-gold-muted"
+                                                  >
+                                                    {bk.abbreviation} {ref.c}:{ref.v}
+                                                  </a>
+                                                );
+                                              })}
+                                              {remaining > 0 && (
+                                                <span className="text-[9px] text-ink-muted self-center">+{remaining} more</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                   );
                                 })()}
