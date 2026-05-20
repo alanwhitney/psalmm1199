@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Plus, Check, Trash2, X, BookHeart, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Prayer } from "@/types";
@@ -34,8 +34,16 @@ export default function JournalClient({ prayers: initial, userId }: Props) {
   const [editSavedId, setEditSavedId] = useState<string | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const pendingEdit = useRef<{ prayer: Prayer; title: string; content: string } | null>(null);
-  const [filter, setFilter] = useState<"all" | "active" | "answered">("all");
+  const FILTERS = ["all", "active", "answered"] as const;
+  const hashFilter = (typeof window !== "undefined" ? window.location.hash.slice(1) : "") as typeof FILTERS[number];
+  const [filter, setFilter] = useState<"all" | "active" | "answered">(
+    FILTERS.includes(hashFilter) ? hashFilter : "active"
+  );
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    history.replaceState(null, "", `#${filter}`);
+  }, [filter]);
 
   function handleComposeChange(newTitle: string, newContent: string) {
     setTitle(newTitle);
