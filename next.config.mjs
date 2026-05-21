@@ -2,6 +2,9 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: [],
+    staleTimes: {
+      dynamic: 0,
+    },
   },
 };
 
