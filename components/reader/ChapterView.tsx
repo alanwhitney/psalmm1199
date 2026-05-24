@@ -151,6 +151,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [linkedEntryLoading, setLinkedEntryLoading] = useState(false);
   const [concordanceCache, setConcordanceCache] = useState<Record<string, { count: number; verses: { b: number; c: number; v: number }[] } | null>>({});
   const [concordanceLoading, setConcordanceLoading] = useState(false);
+  const [strongsModal, setStrongsModal] = useState<{ strongs: string; lemma: string; xlit?: string; def?: string; derivation?: string } | null>(null);
 
   async function loadStrongs(verseNum: number) {
     if (strongsOpen === verseNum) { setStrongsOpen(null); setActiveStrongsKey(null); setLinkedEntry(null); return; }
@@ -614,41 +615,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                                           {linkedEntry.def && <p className="text-[10px] text-ink-secondary mt-0.5 m-0 leading-snug">{linkedEntry.def}</p>}
                                         </div>
                                       )}
-                                      {/* Concordance */}
-                                      {(() => {
-                                        const conc = concordanceCache[entry.strongs];
-                                        if (concordanceLoading && !(entry.strongs in concordanceCache)) {
-                                          return <p className="text-[10px] text-ink-muted mt-1.5 m-0 pt-1.5 border-t border-line-subtle/60">Loading uses…</p>;
-                                        }
-                                        if (!conc || !conc.verses?.length) return null;
-                                        const shown = conc.verses.slice(0, 15);
-                                        const remaining = conc.count - shown.length;
-                                        return (
-                                          <div className="mt-1.5 pt-1.5 border-t border-line-subtle/60">
-                                            <p className="text-[9px] text-ink-muted uppercase tracking-wider font-semibold m-0 mb-1.5">
-                                              Used {conc.count} {conc.count === 1 ? "time" : "times"} in the Bible
-                                            </p>
-                                            <div className="flex flex-wrap gap-1">
-                                              {shown.map((ref, i) => {
-                                                const bk = BIBLE_BOOKS[ref.b - 1];
-                                                if (!bk) return null;
-                                                return (
-                                                  <a
-                                                    key={i}
-                                                    href={`/bible/${bk.id}/${ref.c}?t=${translation}#v${ref.v}`}
-                                                    className="text-[9px] px-1.5 py-0.5 rounded bg-surface-raised border border-line-subtle text-ink-secondary no-underline hover:border-gold-muted"
-                                                  >
-                                                    {bk.abbreviation} {ref.c}:{ref.v}
-                                                  </a>
-                                                );
-                                              })}
-                                              {remaining > 0 && (
-                                                <span className="text-[9px] text-ink-muted self-center">+{remaining} more</span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      })()}
+                                      <button
+                                        onClick={() => setStrongsModal(entry)}
+                                        className="mt-2 text-[10px] text-gold bg-transparent border-none cursor-pointer p-0 font-semibold"
+                                      >
+                                        {concordanceCache[entry.strongs]
+                                          ? `Full entry · ${concordanceCache[entry.strongs]!.count} uses →`
+                                          : "Full entry →"}
+                                      </button>
                                     </div>
                                   );
                                 })()}
@@ -765,6 +739,80 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           </div>
         </div>
       )}
+
+      {/* Strong's full entry modal */}
+    {strongsModal && (
+      <div className="fixed inset-0 z-50 flex flex-col justify-end">
+        <div className="absolute inset-0 bg-black/60" onClick={() => setStrongsModal(null)} />
+        <div className="relative w-full max-h-[88vh] bg-surface rounded-t-2xl flex flex-col shadow-2xl">
+          {/* Header */}
+          <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-line-subtle shrink-0">
+            <div>
+              <span className="text-[11px] font-mono text-gold">{strongsModal.strongs}</span>
+              {strongsModal.lemma && (
+                <div className="text-[24px] font-semibold text-ink-primary leading-tight mt-0.5">{strongsModal.lemma}</div>
+              )}
+              {strongsModal.xlit && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-[9px] text-ink-muted uppercase tracking-wider font-semibold">pronounced</span>
+                  <span className="text-[15px] text-ink-secondary italic">{strongsModal.xlit}</span>
+                </div>
+              )}
+            </div>
+            <button onClick={() => setStrongsModal(null)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 mt-1 shrink-0">
+              <XIcon size={18} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="overflow-y-auto px-5 py-4 flex flex-col gap-5">
+            {strongsModal.def && (
+              <div>
+                <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold mb-2 m-0">Definition</p>
+                <p className="text-[14px] text-ink-secondary leading-[1.8] m-0">{strongsModal.def}</p>
+              </div>
+            )}
+            {strongsModal.derivation && (
+              <div>
+                <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold mb-2 m-0">Origin</p>
+                <p className="text-[13px] text-ink-muted leading-[1.7] m-0">{renderDerivation(strongsModal.derivation)}</p>
+              </div>
+            )}
+            {(() => {
+              const conc = concordanceCache[strongsModal.strongs];
+              if (concordanceLoading && !(strongsModal.strongs in concordanceCache)) {
+                return <p className="text-[13px] text-ink-muted m-0">Loading uses…</p>;
+              }
+              if (!conc?.verses?.length) return null;
+              return (
+                <div>
+                  <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold mb-2 m-0">
+                    Used {conc.count} {conc.count === 1 ? "time" : "times"} in the Bible
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {conc.verses.map((ref, i) => {
+                      const bk = BIBLE_BOOKS[ref.b - 1];
+                      if (!bk) return null;
+                      return (
+                        <a
+                          key={i}
+                          href={`/bible/${bk.id}/${ref.c}?t=${translation}#v${ref.v}`}
+                          onClick={() => setStrongsModal(null)}
+                          className="text-[11px] px-2 py-1 rounded-md bg-surface-raised border border-line-subtle text-ink-secondary no-underline hover:border-gold-muted transition-colors"
+                        >
+                          {bk.abbreviation} {ref.c}:{ref.v}
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+            <div className="h-4 shrink-0" />
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
