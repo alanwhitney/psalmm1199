@@ -792,8 +792,8 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                         <span className="text-[13px] text-ink-primary w-28 shrink-0 capitalize">{word}</span>
                         <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-gold/50"
-                            style={{ width: `${Math.round((count / max) * 100)}%` }}
+                            className="h-full rounded-full"
+                            style={{ width: `${Math.round((count / max) * 100)}%`, backgroundColor: 'var(--gold)' }}
                           />
                         </div>
                         <span className="text-[11px] text-ink-muted w-8 text-right shrink-0">{count}×</span>
