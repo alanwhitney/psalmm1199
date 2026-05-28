@@ -149,7 +149,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [activeStrongsKey, setActiveStrongsKey] = useState<string | null>(null);
   const [linkedEntry, setLinkedEntry] = useState<{ id: string; lemma?: string; def?: string; xlit?: string; derivation?: string } | null>(null);
   const [linkedEntryLoading, setLinkedEntryLoading] = useState(false);
-  const [concordanceCache, setConcordanceCache] = useState<Record<string, { count: number; verses: { b: number; c: number; v: number }[] } | null>>({});
+  const [concordanceCache, setConcordanceCache] = useState<Record<string, { count: number; verses: { b: number; c: number; v: number }[]; kjvWords?: { word: string; count: number }[] } | null>>({});
   const [concordanceLoading, setConcordanceLoading] = useState(false);
   const [strongsModal, setStrongsModal] = useState<{ strongs: string; lemma: string; xlit?: string; def?: string; derivation?: string } | null>(null);
 
@@ -778,6 +778,31 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                 <p className="text-[13px] text-ink-muted leading-[1.7] m-0">{renderDerivation(strongsModal.derivation)}</p>
               </div>
             )}
+            {(() => {
+              const conc = concordanceCache[strongsModal.strongs];
+              const words = conc?.kjvWords;
+              if (!words?.length) return null;
+              const max = words[0].count;
+              return (
+                <div>
+                  <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold mb-2 m-0">Translated as</p>
+                  <div className="flex flex-col gap-1.5">
+                    {words.map(({ word, count }) => (
+                      <div key={word} className="flex items-center gap-2">
+                        <span className="text-[13px] text-ink-primary w-28 shrink-0 capitalize">{word}</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gold/50"
+                            style={{ width: `${Math.round((count / max) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-ink-muted w-8 text-right shrink-0">{count}×</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             {(() => {
               const conc = concordanceCache[strongsModal.strongs];
               if (concordanceLoading && !(strongsModal.strongs in concordanceCache)) {
