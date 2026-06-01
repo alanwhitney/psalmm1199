@@ -10,6 +10,11 @@ import { BIBLE_BOOKS } from "@/lib/books";
 import { detectBibleRefs } from "@/lib/bible-refs";
 import { WJ_OPEN, WJ_CLOSE, stripWj } from "@/lib/bible-api";
 
+const SCROLL_DELAY_EXTERNAL = 100;  // let React finish painting before scrolling to an externally-highlighted verse
+const SCROLL_DELAY_HASH = 150;      // slightly longer for hash nav — page may still be settling on first mount
+const COPY_FEEDBACK_MS = 2000;      // how long "Copied" UI state stays visible
+const NOTE_SAVE_FEEDBACK_MS = 2000; // how long "Saved" indicator stays visible after a note saves
+const NOTE_AUTOSAVE_DEBOUNCE = 1500; // debounce delay before auto-saving a note in progress
 
 function renderWjText(text: string): React.ReactNode {
   if (!text.includes(WJ_OPEN)) return text;
@@ -99,7 +104,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       setSelectedVerse(externalHighlight);
       setTimeout(() => {
         document.getElementById(`v${externalHighlight}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
+      }, SCROLL_DELAY_EXTERNAL);
     }
   }, [externalHighlight]);
 
@@ -110,7 +115,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       setSelectedVerse(verseNum);
       setTimeout(() => {
         document.getElementById(`v${verseNum}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 150);
+      }, SCROLL_DELAY_HASH);
     }
   }, []);
 
@@ -229,7 +234,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       document.body.appendChild(el); el.select(); document.execCommand("copy"); document.body.removeChild(el);
     }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
   }
 
   async function shareVerse(num: number) {
@@ -294,7 +299,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     }
     setNoteSaving(false);
     setNoteSavedVerse(verseNum);
-    setTimeout(() => setNoteSavedVerse(null), 2000);
+    setTimeout(() => setNoteSavedVerse(null), NOTE_SAVE_FEEDBACK_MS);
   }, [user, book, chapter, supabase, notes]);
 
   function handleNoteChange(verseNum: number, value: string) {
@@ -303,7 +308,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       if (pendingSave.current) saveNote(pendingSave.current.verse, pendingSave.current.content);
-    }, 1500);
+    }, NOTE_AUTOSAVE_DEBOUNCE);
   }
 
   async function deleteNote(noteId: string, verseNum: number) {
