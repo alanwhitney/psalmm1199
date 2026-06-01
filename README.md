@@ -15,9 +15,11 @@ A clean, distraction-free Bible reading app with bookmarks, verse notes, highlig
 - Bookmarks with optional labels
 - Reading plans with daily completion tracking
 - Prayer journal
+- Strong's concordance — tap any word for Hebrew/Greek entry, pronunciation, definition, and all Bible occurrences
 - Print view (chapter + your notes, PDF-ready)
 - Cross-reference chips in verse popover
 - Text-to-speech playback
+- Light and dark theme
 - PWA with offline support
 
 ---
@@ -56,7 +58,7 @@ npm install
 3. Browse the Bible library to find the translation IDs you want — KJV (`de4e12af7f28f599-02`) and NIV (`3e2eb613d45e131e-01`) are public; NKJV requires a licensed ID from your account
 
 **ESV API** (optional)
-1. Request a free key at [api.esv.org](https://api.esv.org) — remove "ESV" from `VALID_TRANSLATIONS` in `app/bible/[bookId]/[chapter]/page.tsx` if you skip this
+1. Request a free key at [api.esv.org](https://api.esv.org) — remove `"ESV"` from the `TRANSLATIONS` array in `types/index.ts` if you skip this
 
 ### 4. Configure environment variables
 
