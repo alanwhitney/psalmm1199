@@ -42,6 +42,7 @@ export interface Bookmark {
   label?: string;
   created_at: string;
   sorted_at: string;
+  updated_at: string;
 }
 
 // Note types

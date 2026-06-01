@@ -227,7 +227,7 @@ function BookmarkCard({ bookmark, onDelete, onAdvance }: { bookmark: BookmarkTyp
           <p className="text-[11px] text-ink-muted m-0">
             {bookmark.translation}
             {bookmark.label && <span className="text-ink-secondary"> · &quot;{bookmark.label}&quot;</span>}
-            <span className="ml-2" suppressHydrationWarning>{smartDate(bookmark.sorted_at)}</span>
+            <span className="ml-2" suppressHydrationWarning>{smartDate(bookmark.updated_at)}</span>
           </p>
         </div>
       </div>
