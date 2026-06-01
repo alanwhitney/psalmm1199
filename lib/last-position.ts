@@ -1,8 +1,8 @@
 import { BOOK_BY_ID } from "@/lib/books";
+import { TRANSLATIONS } from "@/types";
 
 const DEFAULT = "/bible/PSA/119";
 const DEFAULT_LABEL = "Reading";
-const VALID_TRANSLATIONS = ["KJV", "NKJV", "NIV", "ESV", "CEV"];
 
 /**
  * Parse last_position cookie value into a valid URL.
@@ -18,7 +18,7 @@ export function lastPositionUrl(cookieValue: string | undefined): string {
     !isNaN(chapterNum) &&
     chapterNum >= 1 &&
     chapterNum <= book.chapters &&
-    VALID_TRANSLATIONS.includes(translation)
+    (TRANSLATIONS as string[]).includes(translation)
   ) {
     return `/bible/${bookId}/${chapterNum}?t=${translation}`;
   }

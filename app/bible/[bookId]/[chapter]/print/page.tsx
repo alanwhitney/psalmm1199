@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { fetchChapter } from "@/lib/bible-api";
 import { BOOK_BY_ID } from "@/lib/books";
-import { Translation, Note } from "@/types";
+import { Translation, Note, TRANSLATIONS } from "@/types";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { WJ_OPEN, WJ_CLOSE, stripWj } from "@/lib/bible-api";
 import PrintTrigger from "./PrintTrigger";
@@ -38,8 +38,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   const chapterNum = parseInt(chapterStr, 10);
   if (isNaN(chapterNum) || chapterNum < 1 || chapterNum > book.chapters) return notFound();
 
-  const VALID_TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV", "CEV"];
-  const translation: Translation = VALID_TRANSLATIONS.includes(t as Translation) ? (t as Translation) : "NKJV";
+  const translation: Translation = (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "NKJV";
 
   let chapterData;
   try {

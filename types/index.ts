@@ -1,5 +1,6 @@
 // Bible types
 export type Translation = "KJV" | "NKJV" | "NIV" | "ESV" | "CEV";
+export const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV", "CEV"];
 
 export interface Book {
   id: string;

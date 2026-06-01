@@ -8,14 +8,8 @@ import { useTheme } from "@/components/ThemeProvider";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
 import { BIBLE_BOOKS } from "@/lib/books";
 import { detectBibleRefs } from "@/lib/bible-refs";
+import { WJ_OPEN, WJ_CLOSE, stripWj } from "@/lib/bible-api";
 
-// Private-use-area sentinels matching bible-api.ts
-const WJ_OPEN = "";
-const WJ_CLOSE = "";
-
-function stripWj(text: string): string {
-    return text.replace(/[]/g, "");
-}
 
 function renderWjText(text: string): React.ReactNode {
   if (!text.includes(WJ_OPEN)) return text;

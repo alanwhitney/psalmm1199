@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { fetchChapter } from "@/lib/bible-api";
 import { BOOK_BY_ID } from "@/lib/books";
-import { Translation, Highlight, Note } from "@/types";
+import { Translation, Highlight, Note, TRANSLATIONS } from "@/types";
 import ReaderLayoutWrapper from "@/components/reader/ReaderLayoutWrapper";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { lastPositionUrl, lastPositionLabel } from "@/lib/last-position";
@@ -24,9 +24,8 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
     return notFound();
   }
 
-  const VALID_TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV", "CEV"];
   const translation: Translation =
-    VALID_TRANSLATIONS.includes(t as Translation) ? (t as Translation) : "NKJV";
+    (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "NKJV";
 
   let chapterData;
   try {

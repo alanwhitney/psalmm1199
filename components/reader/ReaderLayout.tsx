@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote
 import AppLogo from "@/components/AppLogo";
 import { useTheme } from "@/components/ThemeProvider";
 import SearchPanel from "./SearchPanel";
-import { Book, Translation } from "@/types";
+import { Book, Translation, TRANSLATIONS } from "@/types";
 import { OT_BOOKS, NT_BOOKS } from "@/lib/books";
 import { createClient } from "@/lib/supabase/client";
 
@@ -25,7 +25,6 @@ interface ReaderLayoutProps {
   backLabel?: string;
 }
 
-const TRANSLATIONS: Translation[] = ["KJV", "NKJV", "NIV", "ESV", "CEV"];
 const DESKTOP_BREAKPOINT = 1024;
 
 export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel }: ReaderLayoutProps) {
