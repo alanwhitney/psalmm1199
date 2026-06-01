@@ -9,6 +9,15 @@ import { Bookmark as BookmarkType, Note } from "@/types";
 import { BIBLE_BOOKS, BOOK_BY_ID } from "@/lib/books";
 import PlanTab from "./PlanTab";
 
+function smartDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  return isToday
+    ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined });
+}
+
 function nextBookmarkPosition(bookId: string, chapter: number): { bookId: string; bookName: string; chapter: number; label: string } | null {
   const book = BOOK_BY_ID[bookId];
   if (!book) return null;
@@ -218,7 +227,7 @@ function BookmarkCard({ bookmark, onDelete, onAdvance }: { bookmark: BookmarkTyp
           <p className="text-[11px] text-ink-muted m-0">
             {bookmark.translation}
             {bookmark.label && <span className="text-ink-secondary"> · &quot;{bookmark.label}&quot;</span>}
-            <span className="ml-2">{new Date(bookmark.created_at).toLocaleDateString()}</span>
+            <span className="ml-2">{smartDate(bookmark.sorted_at)}</span>
           </p>
         </div>
       </div>
@@ -278,7 +287,7 @@ function NoteCard({ note, query = "" }: { note: Props["notes"][0]; query?: strin
     <Link href={`/bible/${note.book_id}/${note.chapter}?note=1#v${note.verse}`} className="no-underline block border rounded-[10px] px-4 py-[14px] bg-surface-raised border-line-subtle">
       <div className="flex items-start justify-between gap-3 mb-2">
         <p className="text-sm font-semibold text-ink-primary m-0">{note.book_name} {note.chapter}:{note.verse}</p>
-        <span className="text-[11px] text-ink-muted shrink-0">{new Date(note.updated_at).toLocaleDateString()}</span>
+        <span className="text-[11px] text-ink-muted shrink-0">{smartDate(note.updated_at)}</span>
       </div>
       <p className="text-[13px] text-ink-secondary m-0 leading-[1.6] italic">
         &quot;<HighlightedText text={snippet} query={query} />&quot;
