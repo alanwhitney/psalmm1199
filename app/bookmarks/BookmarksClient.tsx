@@ -227,7 +227,7 @@ function BookmarkCard({ bookmark, onDelete, onAdvance }: { bookmark: BookmarkTyp
           <p className="text-[11px] text-ink-muted m-0">
             {bookmark.translation}
             {bookmark.label && <span className="text-ink-secondary"> · &quot;{bookmark.label}&quot;</span>}
-            <span className="ml-2">{smartDate(bookmark.sorted_at)}</span>
+            <span className="ml-2" suppressHydrationWarning>{smartDate(bookmark.sorted_at)}</span>
           </p>
         </div>
       </div>
@@ -287,7 +287,7 @@ function NoteCard({ note, query = "" }: { note: Props["notes"][0]; query?: strin
     <Link href={`/bible/${note.book_id}/${note.chapter}?note=1#v${note.verse}`} className="no-underline block border rounded-[10px] px-4 py-[14px] bg-surface-raised border-line-subtle">
       <div className="flex items-start justify-between gap-3 mb-2">
         <p className="text-sm font-semibold text-ink-primary m-0">{note.book_name} {note.chapter}:{note.verse}</p>
-        <span className="text-[11px] text-ink-muted shrink-0">{smartDate(note.updated_at)}</span>
+        <span className="text-[11px] text-ink-muted shrink-0" suppressHydrationWarning>{smartDate(note.updated_at)}</span>
       </div>
       <p className="text-[13px] text-ink-secondary m-0 leading-[1.6] italic">
         &quot;<HighlightedText text={snippet} query={query} />&quot;
