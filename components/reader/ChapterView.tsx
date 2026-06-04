@@ -814,7 +814,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                     Used {conc.count} {conc.count === 1 ? "time" : "times"} in the Bible
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {conc.verses.map((ref, i) => {
+                    {[...conc.verses].sort((a, b) => a.b - b.b || a.c - b.c || a.v - b.v).map((ref, i) => {
                       const bk = BIBLE_BOOKS[ref.b - 1];
                       if (!bk) return null;
                       return (
