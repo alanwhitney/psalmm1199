@@ -70,7 +70,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
     const next = nextBookmarkPosition(bookId, chapter);
     if (!next) return;
     await supabase.from("bookmarks").update({ book_id: next.bookId, book_name: next.bookName, chapter: next.chapter }).eq("id", id);
-    setBookmarks(prev => prev.map(b => b.id === id ? { ...b, book_id: next.bookId, book_name: next.bookName, chapter: next.chapter } : b));
+    setBookmarks(prev => prev.map(b => b.id === id ? { ...b, book_id: next.bookId, book_name: next.bookName, chapter: next.chapter, updated_at: new Date().toISOString() } : b));
   }
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
