@@ -15,6 +15,7 @@ const SCROLL_DELAY_HASH = 150;      // slightly longer for hash nav — page may
 const COPY_FEEDBACK_MS = 2000;      // how long "Copied" UI state stays visible
 const NOTE_SAVE_FEEDBACK_MS = 2000; // how long "Saved" indicator stays visible after a note saves
 const NOTE_AUTOSAVE_DEBOUNCE = 1500; // debounce delay before auto-saving a note in progress
+const SCROLL_SAVE_DEBOUNCE = 300;    // debounce delay before persisting scroll position to sessionStorage
 
 function renderWjText(text: string): React.ReactNode {
   if (!text.includes(WJ_OPEN)) return text;
@@ -358,7 +359,17 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const nextChapter = chapter < book.chapters ? chapter + 1 : null;
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [readProgress, setReadProgress] = useState(0);
+
+  const scrollKey = `scroll:${book.id}:${chapter}`;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || window.location.hash) return;
+    const saved = sessionStorage.getItem(scrollKey);
+    if (saved) el.scrollTop = parseInt(saved, 10);
+  }, [scrollKey]);
 
   // Sorted list of verse numbers that have notes or open drafts
   const noteVerses = Array.from(new Set([
@@ -378,6 +389,10 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
             if (!el) return;
             const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
             setReadProgress(isNaN(pct) ? 0 : Math.min(pct, 1));
+            if (scrollSaveTimer.current) clearTimeout(scrollSaveTimer.current);
+            scrollSaveTimer.current = setTimeout(() => {
+              sessionStorage.setItem(scrollKey, String(el.scrollTop));
+            }, SCROLL_SAVE_DEBOUNCE);
           }}
         >
           <div className="max-w-[680px] mx-auto py-12 px-8">
