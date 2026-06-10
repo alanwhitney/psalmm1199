@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bookmark, StickyNote, Trash2, ChevronRight, CalendarDays, Search, X, ChevronsRight } from "lucide-react";
+import { Bookmark, StickyNote, Trash2, ChevronRight, CalendarDays, Search, X, ChevronsRight, Download } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
@@ -51,6 +51,25 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
   const [noteSearch, setNoteSearch] = useState("");
   const [notePage, setNotePage] = useState(1);
   const [notePageSize, setNotePageSize] = useState<NotePageSize>(25);
+  const [exporting, setExporting] = useState(false);
+
+  async function exportData() {
+    setExporting(true);
+    const [{ data: bm }, { data: nt }, { data: hl }, { data: pr }] = await Promise.all([
+      supabase.from("bookmarks").select("book_id,book_name,chapter,verse,translation,label,created_at,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }),
+      supabase.from("notes").select("book_id,book_name,chapter,verse,content,created_at,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }),
+      supabase.from("highlights").select("book_id,chapter,verse,translation,color,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+      supabase.from("prayers").select("title,content,answered,answered_at,created_at,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
+    ]);
+    const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), bookmarks: bm ?? [], notes: nt ?? [], highlights: hl ?? [], prayers: pr ?? [] }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `psalm1199-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExporting(false);
+  }
 
   const matchesSearch = (n: Props["notes"][0]) =>
     n.content.toLowerCase().includes(noteSearch.toLowerCase()) ||
@@ -81,9 +100,16 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
 
   return (
     <div className="max-w-[720px] mx-auto py-10 px-6">
-        <h1 className="text-2xl font-light text-ink-primary mb-2 font-reading">
-          My Reading
-        </h1>
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <h1 className="text-2xl font-light text-ink-primary font-reading">My Reading</h1>
+          <button
+            onClick={exportData}
+            disabled={exporting}
+            className="flex items-center gap-1.5 text-[12px] text-ink-muted px-3 py-1.5 rounded-lg border border-line-subtle bg-surface-overlay cursor-pointer disabled:opacity-50 shrink-0 mt-1"
+          >
+            <Download size={12} />{exporting ? "Exporting…" : "Export"}
+          </button>
+        </div>
         <p className="text-[13px] text-ink-muted mb-8">
           {bookmarks.length} bookmark{bookmarks.length !== 1 ? "s" : ""} · {notes.length} note{notes.length !== 1 ? "s" : ""} · {userPlans.length} plan{userPlans.length !== 1 ? "s" : ""}
         </p>
