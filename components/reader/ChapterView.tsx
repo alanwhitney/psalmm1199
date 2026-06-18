@@ -673,7 +673,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
       {/* Notes panel */}
       {noteOpen && (
-        <div className="absolute inset-0 z-20 lg:static lg:inset-auto lg:z-auto lg:w-80 border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
+        <div className="absolute inset-0 z-20 lg:static lg:inset-auto lg:z-auto lg:w-80 xl:w-96 2xl:w-[440px] border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
           <div className="px-4 py-3 border-b border-b-line-subtle flex items-center justify-between shrink-0">
             <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
             <button onClick={() => setNoteOpen(false)} className="bg-transparent border-none cursor-pointer text-ink-muted text-lg leading-none p-0">×</button>
@@ -710,7 +710,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                         <div className="px-4 pb-4">
                           <textarea
                             autoFocus
-                            className="w-full bg-surface-overlay text-ink-primary text-[13px] p-3 resize-none border border-line-subtle rounded-lg outline-none leading-[1.7] font-[inherit] min-h-[120px]"
+                            className="w-full bg-surface-overlay text-ink-primary text-[13px] p-3 resize-none border border-line-subtle rounded-lg outline-none leading-[1.7] font-[inherit] min-h-[120px] xl:min-h-[180px] 2xl:min-h-[220px]"
                             placeholder={`Note for verse ${verseNum}…`}
                             value={content}
                             onChange={(e) => handleNoteChange(verseNum, e.target.value)}
