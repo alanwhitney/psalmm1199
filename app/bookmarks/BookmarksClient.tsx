@@ -174,7 +174,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                     {visibleNotes.map(note => <NoteCard key={note.id} note={note} query={noteSearch} />)}
                   </div>
 
@@ -286,11 +286,11 @@ function BookmarkCard({ bookmark, onDelete, onAdvance }: { bookmark: BookmarkTyp
 }
 
 function noteSnippet(content: string, query: string): string {
-  if (!query.trim()) return content.length > 120 ? content.slice(0, 120) + "…" : content;
+  if (!query.trim()) return content.length > 200 ? content.slice(0, 200) + "…" : content;
   const idx = content.toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return content.length > 120 ? content.slice(0, 120) + "…" : content;
-  const start = Math.max(0, idx - 40);
-  const end = Math.min(content.length, idx + query.length + 80);
+  if (idx === -1) return content.length > 200 ? content.slice(0, 200) + "…" : content;
+  const start = Math.max(0, idx - 60);
+  const end = Math.min(content.length, idx + query.length + 120);
   return (start > 0 ? "…" : "") + content.slice(start, end) + (end < content.length ? "…" : "");
 }
 
