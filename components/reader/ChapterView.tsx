@@ -710,7 +710,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                         <div className="px-4 pb-4">
                           <textarea
                             autoFocus
-                            className="w-full bg-surface-overlay text-ink-primary text-[13px] p-3 resize-none border border-line-subtle rounded-lg outline-none leading-[1.7] font-[inherit] min-h-[120px] xl:min-h-[180px] 2xl:min-h-[220px]"
+                            className="w-full bg-surface-overlay text-ink-primary text-[13px] p-3 resize-y border border-line-subtle rounded-lg outline-none leading-[1.7] font-[inherit] min-h-[120px] xl:min-h-[180px] 2xl:min-h-[220px]"
                             placeholder={`Note for verse ${verseNum}…`}
                             value={content}
                             onChange={(e) => handleNoteChange(verseNum, e.target.value)}
