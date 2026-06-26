@@ -6,6 +6,7 @@ import { Translation, Highlight, Note, TRANSLATIONS } from "@/types";
 import ReaderLayoutWrapper from "@/components/reader/ReaderLayoutWrapper";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { lastPositionUrl, lastPositionLabel } from "@/lib/last-position";
+import { getChapterPlaces } from "@/lib/chapter-places";
 
 interface PageProps {
   params: Promise<{ bookId: string; chapter: string }>;
@@ -68,6 +69,8 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
     }
   }
 
+  const mapPlaces = getChapterPlaces(bookId.toUpperCase(), chapterNum);
+
   return (
     <ReaderLayoutWrapper
       book={book}
@@ -83,6 +86,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       noteChapters={noteChapters}
       backHref={backHref}
       backLabel={backLabel}
+      mapPlaces={mapPlaces}
     />
   );
 }

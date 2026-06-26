@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map } from "lucide-react";
 import Link from "next/link";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
@@ -9,6 +9,8 @@ import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight }
 import { BIBLE_BOOKS } from "@/lib/books";
 import { detectBibleRefs } from "@/lib/bible-refs";
 import { WJ_OPEN, WJ_CLOSE, stripWj } from "@/lib/bible-api";
+import { MapPlace } from "@/lib/chapter-places";
+import MapPanel from "./MapPanel";
 
 const SCROLL_DELAY_EXTERNAL = 100;  // let React finish painting before scrolling to an externally-highlighted verse
 const SCROLL_DELAY_HASH = 150;      // slightly longer for hash nav — page may still be settling on first mount
@@ -57,9 +59,10 @@ interface ChapterViewProps {
   onNoteOpenChange?: (open: boolean) => void;
   onVersesReady?: (verses: { number: number; text: string }[]) => void;
   externalHighlight?: number | null;
+  mapPlaces?: MapPlace[];
 }
 
-export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNotes, initialHighlights, openNote, onNoteOpenChange, onVersesReady, externalHighlight }: ChapterViewProps) {
+export default function ChapterView({ book, chapter, translation, chapterData, user, initialBookmark, initialNotes, initialHighlights, openNote, onNoteOpenChange, onVersesReady, externalHighlight, mapPlaces = [] }: ChapterViewProps) {
   const router = useRouter();
   const supabase = createClient();
   const { showSections } = useTheme();
@@ -67,6 +70,11 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
+  const [mapOpen, setMapOpen] = useState(false);
+
+  function openNotes() { setMapOpen(false); setNoteOpen(true); }
+  function openMap() { setNoteOpen(false); setMapOpen(true); }
+
   useEffect(() => {
     onNoteOpenChange?.(noteOpen);
     const url = new URL(window.location.href);
@@ -425,12 +433,23 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
               {/* Notes */}
               <button
-                onClick={() => { if (!user) { router.push("/auth/login"); return; } setNoteOpen(o => !o); }}
+                onClick={() => { if (!user) { router.push("/auth/login"); return; } noteOpen ? setNoteOpen(false) : openNotes(); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${noteOpen ? "border-line bg-surface-overlay text-ink-primary" : notes.length > 0 ? "border-line-subtle bg-surface-raised text-ink-primary" : "border-line-subtle bg-surface-raised text-ink-secondary"}`}
               >
                 <StickyNote size={13} />
                 Notes{notes.length > 0 ? ` · ${notes.length}` : ""}
               </button>
+
+              {/* Map */}
+              {mapPlaces.length > 0 && (
+                <button
+                  onClick={() => mapOpen ? setMapOpen(false) : openMap()}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${mapOpen ? "border-line bg-surface-overlay text-ink-primary" : "border-line-subtle bg-surface-raised text-ink-secondary"}`}
+                >
+                  <Map size={13} />
+                  Map
+                </button>
+              )}
 
               {/* Listen */}
               {speech.supported && speech.state === "idle" && (
@@ -670,6 +689,11 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           <div className="h-full" style={{ width: `${readProgress * 100}%`, backgroundColor: "var(--gold)", opacity: 0.8, transition: "width 75ms linear" }} />
         </div>
       </div>
+
+      {/* Map panel */}
+      {mapOpen && mapPlaces.length > 0 && (
+        <MapPanel places={mapPlaces} onClose={() => setMapOpen(false)} />
+      )}
 
       {/* Notes panel */}
       {noteOpen && (
