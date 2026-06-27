@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
 import { BIBLE_BOOKS, BOOK_BY_ID } from "@/lib/books";
 import PlanTab from "./PlanTab";
+import StudyTab, { StudyGroup } from "./StudyTab";
 
 function smartDate(iso: string): string {
   const d = new Date(iso);
@@ -36,14 +37,15 @@ interface Props {
   userId: string;
   userPlans: { id: string; plan_id: string; started_at: string; translation: string; active: boolean }[];
   completions: { plan_id: string; day: number }[];
+  studyGroups: StudyGroup[];
 }
 
-type Tab = "bookmarks" | "notes" | "plan";
+type Tab = "bookmarks" | "notes" | "plan" | "study";
 
 const NOTE_PAGE_SIZES = [25, 50, 75, 100] as const;
 type NotePageSize = typeof NOTE_PAGE_SIZES[number];
 
-export default function BookmarksClient({ bookmarks: initial, notes, userId, userPlans, completions }: Props) {
+export default function BookmarksClient({ bookmarks: initial, notes, userId, userPlans, completions, studyGroups }: Props) {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) ?? "bookmarks");
@@ -96,6 +98,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
     { key: "bookmarks", label: "Bookmarks", count: bookmarks.length },
     { key: "notes", label: "Notes", count: notes.length },
     { key: "plan", label: "Reading Plan" },
+    { key: "study", label: "Study", count: studyGroups.length || undefined },
   ];
 
   return (
@@ -111,7 +114,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
           </button>
         </div>
         <p className="text-[13px] text-ink-muted mb-8">
-          {bookmarks.length} bookmark{bookmarks.length !== 1 ? "s" : ""} · {notes.length} note{notes.length !== 1 ? "s" : ""} · {userPlans.length} plan{userPlans.length !== 1 ? "s" : ""}
+          {bookmarks.length} bookmark{bookmarks.length !== 1 ? "s" : ""} · {notes.length} note{notes.length !== 1 ? "s" : ""} · {userPlans.length} plan{userPlans.length !== 1 ? "s" : ""} · {studyGroups.length} group{studyGroups.length !== 1 ? "s" : ""}
         </p>
 
         {/* Tabs */}
@@ -231,6 +234,11 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
             initialCompletions={completions}
             defaultTranslation="KJV"
           />
+        )}
+
+        {/* Study tab */}
+        {tab === "study" && (
+          <StudyTab initialGroups={studyGroups} userId={userId} />
         )}
     </div>
   );
