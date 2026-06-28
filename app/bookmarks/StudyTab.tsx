@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users, ChevronRight, ChevronsRight, Trash2, LogOut, Copy, Check, X } from "lucide-react";
+import { Users, ChevronRight, ChevronsRight, Trash2, LogOut, Copy, Check, X, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BIBLE_BOOKS, BOOK_BY_ID } from "@/lib/books";
 import { TRANSLATIONS, Translation } from "@/types";
@@ -34,6 +34,7 @@ export default function StudyTab({ initialGroups, userId }: { initialGroups: Stu
   const supabase = createClient();
   const [groups, setGroups] = useState(initialGroups);
   const [creating, setCreating] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<StudyGroup | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
@@ -70,6 +71,12 @@ export default function StudyTab({ initialGroups, userId }: { initialGroups: Stu
   async function deleteGroup(id: string) {
     await supabase.from("study_groups").delete().eq("id", id);
     setGroups(prev => prev.filter(g => g.id !== id));
+  }
+
+  async function updateGroup(id: string, bookId: string, bookName: string, chapter: number, translation: string) {
+    await supabase.from("study_groups").update({ book_id: bookId, book_name: bookName, chapter, translation }).eq("id", id);
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, book_id: bookId, book_name: bookName, chapter, translation } : g));
+    setEditingGroup(null);
   }
 
   return (
@@ -119,11 +126,21 @@ export default function StudyTab({ initialGroups, userId }: { initialGroups: Stu
               group={g}
               isOwner={g.owner_id === userId}
               onAdvance={() => advanceGroup(g.id, g.book_id, g.chapter)}
+              onEdit={() => setEditingGroup(g)}
               onLeave={() => leaveGroup(g.id)}
               onDelete={() => deleteGroup(g.id)}
             />
           ))}
         </div>
+      )}
+
+      {/* Edit modal */}
+      {editingGroup && (
+        <EditModal
+          group={editingGroup}
+          onClose={() => setEditingGroup(null)}
+          onSave={(bookId, bookName, chapter, translation) => updateGroup(editingGroup.id, bookId, bookName, chapter, translation)}
+        />
       )}
 
       {/* Create modal */}
@@ -143,11 +160,12 @@ export default function StudyTab({ initialGroups, userId }: { initialGroups: Stu
 }
 
 function StudyGroupCard({
-  group, isOwner, onAdvance, onLeave, onDelete,
+  group, isOwner, onAdvance, onEdit, onLeave, onDelete,
 }: {
   group: StudyGroup;
   isOwner: boolean;
   onAdvance: () => void;
+  onEdit: () => void;
   onLeave: () => void;
   onDelete: () => void;
 }) {
@@ -179,6 +197,12 @@ function StudyGroupCard({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {isOwner && (
+            <button onClick={onEdit} title="Edit chapter"
+              className="flex items-center gap-1 text-xs text-ink-secondary px-[10px] py-1.5 bg-surface-overlay rounded-md border border-line-subtle cursor-pointer">
+              <Pencil size={12} /><span className="hidden sm:inline">Edit</span>
+            </button>
+          )}
           {isOwner && next && (
             <button onClick={onAdvance} title={`Advance to ${next.label}`}
               className="flex items-center gap-1 text-xs text-ink-secondary px-[10px] py-1.5 bg-surface-overlay rounded-md border border-line-subtle cursor-pointer">
@@ -256,6 +280,83 @@ function InviteCodeBanner({ group, onDismiss }: { group: StudyGroup; onDismiss: 
           <button onClick={copy} className="flex items-center gap-1.5 text-[12px] text-ink-secondary bg-surface border border-line-subtle rounded-md px-3 py-1.5 cursor-pointer">
             {copied ? <Check size={13} className="text-gold" /> : <Copy size={13} />}
             {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditModal({ group, onClose, onSave }: {
+  group: StudyGroup;
+  onClose: () => void;
+  onSave: (bookId: string, bookName: string, chapter: number, translation: string) => void;
+}) {
+  const [bookId, setBookId] = useState(group.book_id);
+  const [chapter, setChapter] = useState(group.chapter);
+  const [translation, setTranslation] = useState<Translation>(group.translation as Translation);
+  const [loading, setLoading] = useState(false);
+
+  const book = BOOK_BY_ID[bookId];
+
+  async function submit() {
+    if (!book) return;
+    setLoading(true);
+    await onSave(book.id, book.name, chapter, translation);
+    setLoading(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-line-subtle">
+          <div>
+            <h2 className="text-[15px] font-semibold text-ink-primary m-0">Edit Study Group</h2>
+            <p className="text-[11px] text-ink-muted mt-0.5 m-0">{group.name}</p>
+          </div>
+          <button onClick={onClose} className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5"><X size={16} /></button>
+        </div>
+        <div className="px-5 py-4 flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider">Book</span>
+              <select
+                value={bookId}
+                onChange={e => { setBookId(e.target.value); setChapter(1); }}
+                className="px-3 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-sm text-ink-primary outline-none focus:border-line"
+              >
+                {BIBLE_BOOKS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider">Chapter</span>
+              <input
+                type="number"
+                min={1}
+                max={book?.chapters ?? 1}
+                value={chapter}
+                onChange={e => setChapter(Math.max(1, Math.min(book?.chapters ?? 1, parseInt(e.target.value) || 1)))}
+                className="px-3 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-sm text-ink-primary outline-none focus:border-line"
+              />
+            </label>
+          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider">Translation</span>
+            <select
+              value={translation}
+              onChange={e => setTranslation(e.target.value as Translation)}
+              className="px-3 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-sm text-ink-primary outline-none focus:border-line"
+            >
+              {TRANSLATIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="px-5 pb-5 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-ink-muted bg-surface-overlay border border-line-subtle rounded-lg cursor-pointer">Cancel</button>
+          <button onClick={submit} disabled={loading}
+            className="px-4 py-2 text-sm font-semibold text-surface bg-gold rounded-lg border-none cursor-pointer disabled:opacity-50">
+            {loading ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
