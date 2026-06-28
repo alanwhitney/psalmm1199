@@ -94,10 +94,10 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
     setBookmarks(prev => prev.map(b => b.id === id ? { ...b, book_id: next.bookId, book_name: next.bookName, chapter: next.chapter, updated_at: new Date().toISOString() } : b));
   }
 
-  const tabs: { key: Tab; label: string; count?: number }[] = [
+  const tabs: { key: Tab; label: string; shortLabel?: string; count?: number }[] = [
     { key: "bookmarks", label: "Bookmarks", count: bookmarks.length },
     { key: "notes", label: "Notes", count: notes.length },
-    { key: "plan", label: "Reading Plan" },
+    { key: "plan", label: "Reading Plan", shortLabel: "Plan" },
     { key: "study", label: "Study", count: studyGroups.length || undefined },
   ];
 
@@ -118,23 +118,26 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
         </p>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-b-line-subtle">
-          {tabs.map(({ key, label, count }) => (
+        <div className="flex gap-0.5 mb-6 border-b border-b-line-subtle overflow-x-auto">
+          {tabs.map(({ key, label, shortLabel, count }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`bg-transparent border-none cursor-pointer px-4 py-2 text-[13px] font-semibold border-b-2 -mb-px ${
+              className={`bg-transparent border-none cursor-pointer px-3 sm:px-4 py-2 text-[13px] font-semibold border-b-2 -mb-px whitespace-nowrap shrink-0 ${
                 tab === key ? "text-gold border-b-gold" : "text-ink-muted border-b-transparent"
               }`}
             >
-              {label}{count !== undefined && <span className="text-[11px] font-normal ml-1">({count})</span>}
+              <span className="sm:hidden">{shortLabel ?? label}</span>
+              <span className="hidden sm:inline">{label}</span>
+              {count !== undefined && <span className="text-[11px] font-normal ml-1">({count})</span>}
             </button>
           ))}
           <Link
             href="/journal"
-            className="no-underline px-4 py-2 text-[13px] font-semibold border-b-2 -mb-px text-ink-muted border-b-transparent"
+            className="no-underline px-3 sm:px-4 py-2 text-[13px] font-semibold border-b-2 -mb-px text-ink-muted border-b-transparent whitespace-nowrap shrink-0"
           >
-            Prayer Journal
+            <span className="sm:hidden">Prayer</span>
+            <span className="hidden sm:inline">Prayer Journal</span>
           </Link>
         </div>
 
