@@ -135,16 +135,24 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [xrefOpen, setXrefOpen] = useState<number | null>(null);
   const [xrefCache, setXrefCache] = useState<Record<number, { bookId: string; chapter: number; verse: number; label: string; href: string }[]>>({});
   const [xrefLoading, setXrefLoading] = useState(false);
+  const [xrefError, setXrefError] = useState<Record<number, string>>({});
 
-  async function loadXrefs(verseNum: number) {
+  function toggleXrefs(verseNum: number) {
     if (xrefOpen === verseNum) { setXrefOpen(null); return; }
     setXrefOpen(verseNum);
-    if (xrefCache[verseNum]) return;
+    if (!xrefCache[verseNum]) fetchXrefs(verseNum);
+  }
+
+  async function fetchXrefs(verseNum: number) {
+    setXrefError(prev => { const next = { ...prev }; delete next[verseNum]; return next; });
     setXrefLoading(true);
     try {
       const res = await fetch(`/api/crossrefs?bookId=${book.id}&chapter=${chapter}&verse=${verseNum}`);
+      if (!res.ok) throw new Error(`Server error (${res.status})`);
       const data = await res.json();
       setXrefCache(prev => ({ ...prev, [verseNum]: data.refs ?? [] }));
+    } catch (err) {
+      setXrefError(prev => ({ ...prev, [verseNum]: err instanceof Error ? err.message : "Couldn't load cross-references" }));
     } finally {
       setXrefLoading(false);
     }
@@ -161,17 +169,26 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [concordanceLoading, setConcordanceLoading] = useState(false);
   const [strongsModal, setStrongsModal] = useState<{ strongs: string; lemma: string; xlit?: string; def?: string; derivation?: string } | null>(null);
 
-  async function loadStrongs(verseNum: number) {
+  const [strongsError, setStrongsError] = useState<Record<number, string>>({});
+
+  function toggleStrongs(verseNum: number) {
     if (strongsOpen === verseNum) { setStrongsOpen(null); setActiveStrongsKey(null); setLinkedEntry(null); return; }
     setStrongsOpen(verseNum);
     setActiveStrongsKey(null);
     setLinkedEntry(null);
-    if (strongsCache[verseNum]) return;
+    if (!strongsCache[verseNum]) fetchStrongs(verseNum);
+  }
+
+  async function fetchStrongs(verseNum: number) {
+    setStrongsError(prev => { const next = { ...prev }; delete next[verseNum]; return next; });
     setStrongsLoading(true);
     try {
       const res = await fetch(`/api/strongs?bookId=${book.id}&chapter=${chapter}&verse=${verseNum}`);
+      if (!res.ok) throw new Error(`Server error (${res.status})`);
       const data = await res.json();
       setStrongsCache((prev) => ({ ...prev, [verseNum]: data.words ?? [] }));
+    } catch (err) {
+      setStrongsError(prev => ({ ...prev, [verseNum]: err instanceof Error ? err.message : "Couldn't load Strong's data" }));
     } finally {
       setStrongsLoading(false);
     }
@@ -569,13 +586,20 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
                         {/* Cross-references row */}
                         <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
-                          <button onClick={() => loadXrefs(verse.number)} className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none">
+                          <button onClick={() => toggleXrefs(verse.number)} className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none">
                             {xrefOpen === verse.number ? "▲ Hide cross-refs" : "▼ Cross-refs"}
                           </button>
                           {xrefOpen === verse.number && (
                             <div className="mt-2">
-                              {xrefLoading && !xrefCache[verse.number] ? (
+                              {xrefLoading && !xrefCache[verse.number] && !xrefError[verse.number] ? (
                                 <p className="text-[10px] text-ink-muted m-0">Loading…</p>
+                              ) : xrefError[verse.number] ? (
+                                <div className="flex items-center gap-2">
+                                  <p className="text-[10px] text-red-400 m-0">Couldn&apos;t load cross-references.</p>
+                                  <button onClick={() => fetchXrefs(verse.number)} className="text-[10px] text-gold-muted bg-transparent border-none cursor-pointer p-0 underline font-semibold">
+                                    Retry
+                                  </button>
+                                </div>
                               ) : (xrefCache[verse.number] ?? []).length === 0 ? (
                                 <p className="text-[10px] text-ink-muted m-0">No cross-references found.</p>
                               ) : (
@@ -595,13 +619,20 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                         {/* Strong's row — KJV/NKJV only */}
                         {(translation === "KJV" || translation === "NKJV") && (
                           <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
-                            <button onClick={() => loadStrongs(verse.number)} className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none">
+                            <button onClick={() => toggleStrongs(verse.number)} className="text-[10px] font-semibold text-gold-muted bg-transparent border-none cursor-pointer p-0 leading-none">
                               {strongsOpen === verse.number ? "▲ Hide Strong's" : "▼ Strong's"}
                             </button>
                             {strongsOpen === verse.number && (
                               <div className="mt-2">
-                                {strongsLoading && !strongsCache[verse.number] ? (
+                                {strongsLoading && !strongsCache[verse.number] && !strongsError[verse.number] ? (
                                   <p className="text-[10px] text-ink-muted m-0">Loading…</p>
+                                ) : strongsError[verse.number] ? (
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[10px] text-red-400 m-0">Couldn&apos;t load Strong&apos;s data.</p>
+                                    <button onClick={() => fetchStrongs(verse.number)} className="text-[10px] text-gold-muted bg-transparent border-none cursor-pointer p-0 underline font-semibold">
+                                      Retry
+                                    </button>
+                                  </div>
                                 ) : (strongsCache[verse.number] ?? []).length === 0 ? (
                                   <p className="text-[10px] text-ink-muted m-0">No data for this verse.</p>
                                 ) : (
