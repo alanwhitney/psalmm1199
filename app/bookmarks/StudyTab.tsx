@@ -368,7 +368,7 @@ function CreateModal({ onClose, onCreate }: { onClose: () => void; onCreate: (g:
   const [name, setName] = useState("");
   const [bookId, setBookId] = useState("MAT");
   const [chapter, setChapter] = useState(1);
-  const [translation, setTranslation] = useState<Translation>("NKJV");
+  const [translation, setTranslation] = useState<Translation>("KJV");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

@@ -26,7 +26,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   }
 
   const translation: Translation =
-    (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "NKJV";
+    (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "KJV";
 
   let chapterData;
   try {

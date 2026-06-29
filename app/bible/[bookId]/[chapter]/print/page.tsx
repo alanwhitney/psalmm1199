@@ -38,7 +38,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   const chapterNum = parseInt(chapterStr, 10);
   if (isNaN(chapterNum) || chapterNum < 1 || chapterNum > book.chapters) return notFound();
 
-  const translation: Translation = (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "NKJV";
+  const translation: Translation = (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "KJV";
 
   let chapterData;
   try {
@@ -209,5 +209,5 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
   const { t } = await searchParams;
   const book = BOOK_BY_ID[bookId?.toUpperCase()];
   if (!book) return {};
-  return { title: `Print — ${book.name} ${chapter} (${t ?? "NKJV"}) — Psalm 119:9` };
+  return { title: `Print — ${book.name} ${chapter} (${t ?? "KJV"}) — Psalm 119:9` };
 }
