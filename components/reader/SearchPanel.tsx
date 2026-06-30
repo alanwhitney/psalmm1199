@@ -36,9 +36,12 @@ export default function SearchPanel({
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<"bible" | "chapter">("bible");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [total, setTotal] = useState(0);
   const [chapterMatches, setChapterMatches] = useState<{ number: number; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -60,18 +63,24 @@ export default function SearchPanel({
     else onHighlightVerse(null);
   }, [verses, onHighlightVerse]);
 
-  const searchBible = useCallback(async (q: string) => {
-    if (!q.trim() || q.trim().length < 2) { setResults([]); return; }
-    setLoading(true);
-    setSearched(true);
+  const searchBible = useCallback(async (q: string, offset = 0) => {
+    if (!q.trim() || q.trim().length < 2) { setResults([]); setTotal(0); return; }
+    const append = offset > 0;
+    if (append) setLoadingMore(true); else { setLoading(true); setSearched(true); }
+    setSearchError(false);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&t=${translation}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&t=${translation}&offset=${offset}`);
+      if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const data = await res.json();
-      setResults(data.results ?? []);
+      const newResults: SearchResult[] = data.results ?? [];
+      setTotal(data.total ?? newResults.length);
+      setResults(prev => append ? [...prev, ...newResults] : newResults);
     } catch {
-      setResults([]);
+      setSearchError(true);
+      if (!append) setResults([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [translation]);
 
@@ -87,8 +96,10 @@ export default function SearchPanel({
   function handleScopeChange(s: "bible" | "chapter") {
     setScope(s);
     setResults([]);
+    setTotal(0);
     setChapterMatches([]);
     setSearched(false);
+    setSearchError(false);
     onHighlightVerse(null);
     if (query.trim()) {
       if (s === "chapter") searchChapter(query);
@@ -134,7 +145,7 @@ export default function SearchPanel({
             className="flex-1 bg-transparent border-none outline-none text-[15px] text-ink-primary font-[inherit]"
           />
           {query && (
-            <button onClick={() => { setQuery(""); setResults([]); setChapterMatches([]); onHighlightVerse(null); }} className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
+            <button onClick={() => { setQuery(""); setResults([]); setTotal(0); setChapterMatches([]); setSearchError(false); onHighlightVerse(null); }} className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
               <X size={15} />
             </button>
           )}
@@ -201,7 +212,7 @@ export default function SearchPanel({
           {!loading && scope === "bible" && results.length > 0 && (
             <div>
               <p className="text-[11px] text-ink-muted px-4 pt-3 pb-1 uppercase tracking-[0.08em] font-semibold">
-                {results.length} result{results.length !== 1 ? "s" : ""}
+                Showing {results.length} of {total} match{total !== 1 ? "es" : ""}
               </p>
               {results.map(r => (
                 <button
@@ -218,14 +229,39 @@ export default function SearchPanel({
                   </p>
                 </button>
               ))}
+              {results.length < total && (
+                <div className="px-4 py-4 flex justify-center">
+                  <button
+                    onClick={() => searchBible(query, results.length)}
+                    disabled={loadingMore}
+                    className="flex items-center gap-2 px-4 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-[12px] font-semibold text-ink-secondary cursor-pointer disabled:opacity-50"
+                  >
+                    {loadingMore && <Loader2 size={13} className="animate-spin" />}
+                    {loadingMore ? "Loading…" : `Show more (${total - results.length} left)`}
+                  </button>
+                </div>
+              )}
+              {searchError && results.length > 0 && (
+                <p className="text-[12px] text-red-400 text-center py-2">Couldn&apos;t load more results.</p>
+              )}
             </div>
           )}
 
           {/* Bible no results */}
-          {!loading && scope === "bible" && searched && results.length === 0 && (
+          {!loading && scope === "bible" && searched && results.length === 0 && !searchError && (
             <div className="text-center py-12 px-6 text-ink-muted">
               <p className="text-[13px]">No results found for &quot;{query}&quot;</p>
               <p className="text-xs mt-2">Try different keywords or check the spelling</p>
+            </div>
+          )}
+
+          {/* Bible search error */}
+          {!loading && scope === "bible" && searched && searchError && results.length === 0 && (
+            <div className="text-center py-12 px-6">
+              <p className="text-[13px] text-red-400 m-0">Search failed.</p>
+              <button onClick={() => searchBible(query)} className="mt-3 text-[12px] text-gold-muted bg-transparent border-none cursor-pointer underline font-semibold">
+                Retry
+              </button>
             </div>
           )}
 

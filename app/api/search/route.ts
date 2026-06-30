@@ -12,13 +12,18 @@ const TRANSLATION_IDS: Record<string, string> = {
 
 const API_BASE = "https://rest.api.bible/v1";
 
+const PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q");
   const translation = (searchParams.get("t") || "KJV") as Translation;
+  const limit = Math.min(MAX_PAGE_SIZE, parseInt(searchParams.get("limit") || String(PAGE_SIZE), 10) || PAGE_SIZE);
+  const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0);
 
   if (!query || query.trim().length < 2) {
-    return NextResponse.json({ results: [] });
+    return NextResponse.json({ results: [], total: 0 });
   }
 
   const bibleId = TRANSLATION_IDS[translation];
@@ -28,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(
-      `${API_BASE}/bibles/${bibleId}/search?query=${encodeURIComponent(query)}&limit=20&sort=relevance`,
+      `${API_BASE}/bibles/${bibleId}/search?query=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}&sort=relevance`,
       { headers: { "api-key": process.env.BIBLE_API_KEY! } }
     );
 
@@ -38,27 +43,21 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json();
     const verses = data.data?.verses ?? [];
+    const total = data.data?.total ?? verses.length;
 
     const results = verses.map((v: {
       id: string;
       reference: string;
       text: string;
-      bookId?: string;
-      chapterId?: string;
     }) => {
-      // Parse bookId and chapter from id like "PSA.119.1"
       const parts = v.id.split(".");
-      const bookId = parts[0];
-      const chapter = parseInt(parts[1], 10);
-      const verseNum = parseInt(parts[2], 10);
-
       return {
         id: v.id,
         reference: v.reference,
         text: v.text?.trim() ?? "",
-        bookId,
-        chapter,
-        verse: verseNum,
+        bookId: parts[0],
+        chapter: parseInt(parts[1], 10),
+        verse: parseInt(parts[2], 10),
       };
     });
 
@@ -69,7 +68,7 @@ export async function GET(request: NextRequest) {
       return a.verse - b.verse;
     });
 
-    return NextResponse.json({ results });
+    return NextResponse.json({ results, total, offset, limit });
   } catch {
     return NextResponse.json({ error: "Search failed" }, { status: 500 });
   }
