@@ -83,6 +83,17 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   }, [noteOpen]);
 
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
+  const [flashVerse, setFlashVerse] = useState<number | null>(null);
+
+  // Briefly highlight a verse — used when arriving via search or external link
+  function flashAndScroll(verseNum: number, delayMs: number) {
+    setSelectedVerse(verseNum);
+    setFlashVerse(verseNum);
+    setTimeout(() => setFlashVerse(prev => (prev === verseNum ? null : prev)), 2500);
+    setTimeout(() => {
+      document.getElementById(`v${verseNum}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, delayMs);
+  }
   const [highlights, setHighlights] = useState<Record<number, string>>(
     Object.fromEntries(initialHighlights.map((h) => [h.verse, h.color]))
   );
@@ -109,23 +120,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   }, [book.id, chapter, translation]);
 
   useEffect(() => {
-    if (externalHighlight != null) {
-      setSelectedVerse(externalHighlight);
-      setTimeout(() => {
-        document.getElementById(`v${externalHighlight}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, SCROLL_DELAY_EXTERNAL);
-    }
+    if (externalHighlight != null) flashAndScroll(externalHighlight, SCROLL_DELAY_EXTERNAL);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalHighlight]);
 
   useEffect(() => {
     const match = window.location.hash.match(/^#v(\d+)$/);
-    if (match) {
-      const verseNum = parseInt(match[1], 10);
-      setSelectedVerse(verseNum);
-      setTimeout(() => {
-        document.getElementById(`v${verseNum}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, SCROLL_DELAY_HASH);
-    }
+    if (match) flashAndScroll(parseInt(match[1], 10), SCROLL_DELAY_HASH);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [copied, setCopied] = useState(false);
@@ -513,6 +515,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               {chapterData.verses.map((verse) => {
                 const lines = verse.text.split("\n");
                 const isSelected = selectedVerse === verse.number;
+                const isFlash = flashVerse === verse.number;
                 const isNarrating = speech.activeVerse === verse.number;
                 const highlightColor = HIGHLIGHT_COLORS.find((c) => c.id === highlights[verse.number]);
                 const heading = showSections ? chapterData.headings?.[verse.number] : null;
@@ -524,10 +527,12 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                       id={`v${verse.number}`}
                       role="button"
                       tabIndex={0}
+                      aria-pressed={isSelected}
+                      aria-label={`Verse ${verse.number}`}
                       onClick={() => selectVerse(verse.number)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectVerse(verse.number); } }}
-                      className={`m-0 mb-1 px-2 py-1 rounded-md cursor-pointer border-l-2 transition-colors ${isSelected ? "border-l-gold" : isNarrating ? "border-l-gold" : "border-l-transparent"}`}
-                      style={{ backgroundColor: isNarrating ? "rgba(201,168,76,0.15)" : isSelected ? "rgba(201,168,76,0.07)" : highlightColor?.bg, transition: "background-color 0.3s ease" }}
+                      className={`m-0 mb-1 px-2 py-1 rounded-md cursor-pointer border-l-2 transition-colors ${isSelected || isFlash || isNarrating ? "border-l-gold" : "border-l-transparent"}`}
+                      style={{ backgroundColor: isFlash ? "rgba(201,168,76,0.35)" : isNarrating ? "rgba(201,168,76,0.15)" : isSelected ? "rgba(201,168,76,0.07)" : highlightColor?.bg, transition: "background-color 0.8s ease" }}
                     >
                       <sup className={`text-[10px] font-bold mr-[3px] font-sans align-super select-none ${isSelected ? "text-gold" : "text-gold-muted"}`}>
                         {verse.number}
