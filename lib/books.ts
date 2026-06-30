@@ -75,3 +75,15 @@ export const BOOK_BY_ID = Object.fromEntries(BIBLE_BOOKS.map((b) => [b.id, b]));
 
 export const OT_BOOKS = BIBLE_BOOKS.filter((b) => b.testament === "OT");
 export const NT_BOOKS = BIBLE_BOOKS.filter((b) => b.testament === "NT");
+
+export function nextChapterPosition(bookId: string, chapter: number): { bookId: string; bookName: string; chapter: number; label: string } | null {
+  const book = BOOK_BY_ID[bookId];
+  if (!book) return null;
+  if (chapter < book.chapters) {
+    return { bookId: book.id, bookName: book.name, chapter: chapter + 1, label: `${book.abbreviation} ${chapter + 1}` };
+  }
+  const idx = BIBLE_BOOKS.findIndex((b) => b.id === bookId);
+  if (idx === -1 || idx === BIBLE_BOOKS.length - 1) return null;
+  const next = BIBLE_BOOKS[idx + 1];
+  return { bookId: next.id, bookName: next.name, chapter: 1, label: `${next.abbreviation} 1` };
+}

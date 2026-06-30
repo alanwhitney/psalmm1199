@@ -6,7 +6,7 @@ import { Bookmark, StickyNote, Trash2, ChevronRight, CalendarDays, Search, X, Ch
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
-import { BIBLE_BOOKS, BOOK_BY_ID } from "@/lib/books";
+import { nextChapterPosition } from "@/lib/books";
 import PlanTab from "./PlanTab";
 import StudyTab, { StudyGroup } from "./StudyTab";
 
@@ -17,18 +17,6 @@ function smartDate(iso: string): string {
   return isToday
     ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
     : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined });
-}
-
-function nextBookmarkPosition(bookId: string, chapter: number): { bookId: string; bookName: string; chapter: number; label: string } | null {
-  const book = BOOK_BY_ID[bookId];
-  if (!book) return null;
-  if (chapter < book.chapters) {
-    return { bookId: book.id, bookName: book.name, chapter: chapter + 1, label: `${book.abbreviation} ${chapter + 1}` };
-  }
-  const idx = BIBLE_BOOKS.findIndex((b) => b.id === bookId);
-  if (idx === -1 || idx === BIBLE_BOOKS.length - 1) return null;
-  const next = BIBLE_BOOKS[idx + 1];
-  return { bookId: next.id, bookName: next.name, chapter: 1, label: `${next.abbreviation} 1` };
 }
 
 interface Props {
@@ -88,7 +76,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
   }
 
   async function advanceBookmark(id: string, bookId: string, chapter: number) {
-    const next = nextBookmarkPosition(bookId, chapter);
+    const next = nextChapterPosition(bookId, chapter);
     if (!next) return;
     await supabase.from("bookmarks").update({ book_id: next.bookId, book_name: next.bookName, chapter: next.chapter }).eq("id", id);
     setBookmarks(prev => prev.map(b => b.id === id ? { ...b, book_id: next.bookId, book_name: next.bookName, chapter: next.chapter, updated_at: new Date().toISOString() } : b));
@@ -249,7 +237,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
 
 function BookmarkCard({ bookmark, onDelete, onAdvance }: { bookmark: BookmarkType; onDelete: () => void; onAdvance: () => void }) {
   const [confirming, setConfirming] = useState(false);
-  const next = nextBookmarkPosition(bookmark.book_id, bookmark.chapter);
+  const next = nextChapterPosition(bookmark.book_id, bookmark.chapter);
   return (
     <div className="bg-surface-raised border border-line-subtle rounded-[10px] px-4 py-[14px] flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">

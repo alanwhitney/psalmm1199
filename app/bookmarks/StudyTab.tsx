@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Users, ChevronRight, ChevronsRight, Trash2, LogOut, Copy, Check, X, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { BIBLE_BOOKS, BOOK_BY_ID } from "@/lib/books";
+import { BIBLE_BOOKS, BOOK_BY_ID, nextChapterPosition } from "@/lib/books";
 import { TRANSLATIONS, Translation } from "@/types";
 
 export type StudyGroup = {
@@ -19,16 +19,6 @@ export type StudyGroup = {
   created_at: string;
   member_count: number;
 };
-
-function nextChapter(bookId: string, chapter: number): { bookId: string; bookName: string; chapter: number; label: string } | null {
-  const book = BOOK_BY_ID[bookId];
-  if (!book) return null;
-  if (chapter < book.chapters) return { bookId: book.id, bookName: book.name, chapter: chapter + 1, label: `${book.abbreviation} ${chapter + 1}` };
-  const idx = BIBLE_BOOKS.findIndex((b) => b.id === bookId);
-  if (idx === -1 || idx === BIBLE_BOOKS.length - 1) return null;
-  const next = BIBLE_BOOKS[idx + 1];
-  return { bookId: next.id, bookName: next.name, chapter: 1, label: `${next.abbreviation} 1` };
-}
 
 export default function StudyTab({ initialGroups, userId }: { initialGroups: StudyGroup[]; userId: string }) {
   const supabase = createClient();
@@ -57,7 +47,7 @@ export default function StudyTab({ initialGroups, userId }: { initialGroups: Stu
   }
 
   async function advanceGroup(id: string, bookId: string, chapter: number) {
-    const next = nextChapter(bookId, chapter);
+    const next = nextChapterPosition(bookId, chapter);
     if (!next) return;
     await supabase.from("study_groups").update({ book_id: next.bookId, book_name: next.bookName, chapter: next.chapter }).eq("id", id);
     setGroups(prev => prev.map(g => g.id === id ? { ...g, book_id: next.bookId, book_name: next.bookName, chapter: next.chapter } : g));
@@ -172,7 +162,7 @@ function StudyGroupCard({
   const [confirming, setConfirming] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
-  const next = nextChapter(group.book_id, group.chapter);
+  const next = nextChapterPosition(group.book_id, group.chapter);
 
   function copyCode() {
     navigator.clipboard.writeText(group.invite_code);
