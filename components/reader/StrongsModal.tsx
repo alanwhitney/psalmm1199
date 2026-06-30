@@ -1,9 +1,11 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { X as XIcon } from "lucide-react";
 import { BIBLE_BOOKS } from "@/lib/books";
 import { Translation } from "@/types";
+
+const FOCUSABLE = 'button, a[href], [tabindex]:not([tabindex="-1"])';
 
 export type StrongsModalData = {
   strongs: string;
@@ -34,16 +36,53 @@ export default function StrongsModal({
   modal, translation, concordance, concordanceError, concordanceLoading,
   onClose, onRetry, renderDerivation,
 }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); return; }
+      if (e.key !== "Tab" || !dialogRef.current) return;
+      const focusables = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE))
+        .filter(el => !el.hasAttribute("disabled"));
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-h-[88vh] bg-surface rounded-t-2xl flex flex-col shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="strongs-modal-title"
+        className="relative w-full max-h-[88vh] bg-surface rounded-t-2xl flex flex-col shadow-2xl"
+      >
         {/* Header */}
         <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-line-subtle shrink-0">
           <div>
             <span className="text-[11px] font-mono text-gold">{modal.strongs}</span>
             {modal.lemma && (
-              <div className="text-[24px] font-semibold text-ink-primary leading-tight mt-0.5">{modal.lemma}</div>
+              <div id="strongs-modal-title" className="text-[24px] font-semibold text-ink-primary leading-tight mt-0.5">{modal.lemma}</div>
             )}
             {modal.xlit && (
               <div className="flex items-center gap-1.5 mt-1">
@@ -52,7 +91,7 @@ export default function StrongsModal({
               </div>
             )}
           </div>
-          <button onClick={onClose} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 mt-1 shrink-0">
+          <button ref={closeButtonRef} onClick={onClose} aria-label="Close" className="bg-transparent border-none cursor-pointer text-ink-muted p-1 mt-1 shrink-0">
             <XIcon size={18} />
           </button>
         </div>
