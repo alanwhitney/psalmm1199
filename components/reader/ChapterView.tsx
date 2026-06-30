@@ -167,6 +167,22 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [linkedEntryLoading, setLinkedEntryLoading] = useState(false);
   const [concordanceCache, setConcordanceCache] = useState<Record<string, { count: number; verses: { b: number; c: number; v: number }[]; kjvWords?: { word: string; count: number }[] } | null>>({});
   const [concordanceLoading, setConcordanceLoading] = useState(false);
+  const [concordanceError, setConcordanceError] = useState<Record<string, string>>({});
+
+  async function fetchConcordance(id: string) {
+    setConcordanceError(prev => { const next = { ...prev }; delete next[id]; return next; });
+    setConcordanceLoading(true);
+    try {
+      const res = await fetch(`/api/strongs/concordance?id=${id}`);
+      if (!res.ok) throw new Error(`Server error (${res.status})`);
+      const data = await res.json();
+      setConcordanceCache(prev => ({ ...prev, [id]: data?.verses ? data : null }));
+    } catch (err) {
+      setConcordanceError(prev => ({ ...prev, [id]: err instanceof Error ? err.message : "Couldn't load concordance" }));
+    } finally {
+      setConcordanceLoading(false);
+    }
+  }
   const [strongsModal, setStrongsModal] = useState<{ strongs: string; lemma: string; xlit?: string; def?: string; derivation?: string } | null>(null);
 
   const [strongsError, setStrongsError] = useState<Record<number, string>>({});
@@ -224,14 +240,10 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     const entry = strongsCache[parseInt(verseStr, 10)]?.[parseInt(idxStr, 10)];
     if (!entry) return;
     const id = entry.strongs;
-    if (id in concordanceCache) return;
-    setConcordanceLoading(true);
-    fetch(`/api/strongs/concordance?id=${id}`)
-      .then(r => r.json())
-      .then(data => setConcordanceCache(prev => ({ ...prev, [id]: data?.verses ? data : null })))
-      .catch(() => setConcordanceCache(prev => ({ ...prev, [id]: null })))
-      .finally(() => setConcordanceLoading(false));
-  }, [activeStrongsKey, strongsCache, concordanceCache]);
+    if (id in concordanceCache || id in concordanceError) return;
+    fetchConcordance(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStrongsKey, strongsCache, concordanceCache, concordanceError]);
 
   function selectVerse(num: number) {
     setSelectedVerse(prev => {
@@ -874,6 +886,17 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
             })()}
             {(() => {
               const conc = concordanceCache[strongsModal.strongs];
+              const err = concordanceError[strongsModal.strongs];
+              if (err) {
+                return (
+                  <div className="flex items-center gap-3">
+                    <p className="text-[13px] text-red-400 m-0">Couldn&apos;t load concordance data.</p>
+                    <button onClick={() => fetchConcordance(strongsModal.strongs)} className="text-[12px] text-gold-muted bg-transparent border-none cursor-pointer p-0 underline font-semibold">
+                      Retry
+                    </button>
+                  </div>
+                );
+              }
               if (concordanceLoading && !(strongsModal.strongs in concordanceCache)) {
                 return <p className="text-[13px] text-ink-muted m-0">Loading uses…</p>;
               }
