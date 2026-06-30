@@ -2,10 +2,35 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users, ChevronRight, ChevronsRight, Trash2, LogOut, Copy, Check, X, Pencil } from "lucide-react";
+import { Users, ChevronRight, ChevronsRight, Trash2, LogOut, Copy, Check, X, Pencil, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BIBLE_BOOKS, BOOK_BY_ID, nextChapterPosition } from "@/lib/books";
 import { TRANSLATIONS, Translation } from "@/types";
+
+function buildShareText(groupName: string, code: string): string {
+  return `Join my Bible study "${groupName}" on Psalm 119:9. Code: ${code}`;
+}
+
+async function shareOrCopy(text: string, title: string): Promise<"shared" | "copied"> {
+  if (typeof navigator !== "undefined" && navigator.share) {
+    try {
+      await navigator.share({ text, title });
+      return "shared";
+    } catch {
+      // user cancelled or share blocked — fall through to clipboard
+    }
+  }
+  await navigator.clipboard.writeText(text);
+  return "copied";
+}
+
+function friendlyJoinError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("invalid invite")) return "That code doesn't match any group.";
+  if (m.includes("owner")) return "You're the owner of this group.";
+  if (m.includes("not authenticated")) return "Please sign in first.";
+  return "Couldn't join the group. Try again.";
+}
 
 export type StudyGroup = {
   id: string;
@@ -37,9 +62,13 @@ export default function StudyTab({ initialGroups, userId }: { initialGroups: Stu
     setJoinLoading(true);
     try {
       const { data, error } = await supabase.rpc("join_study_group_by_code", { p_code: code });
-      if (error) { setJoinError(error.message); return; }
+      if (error) { setJoinError(friendlyJoinError(error.message)); return; }
       const group = data as Omit<StudyGroup, "member_count">;
-      setGroups(prev => prev.some(g => g.id === group.id) ? prev : [...prev, { ...group, member_count: 1 }]);
+      if (groups.some(g => g.id === group.id)) {
+        setJoinError("You're already in this group.");
+        return;
+      }
+      setGroups(prev => [...prev, { ...group, member_count: 1 }]);
       setJoinCode("");
     } finally {
       setJoinLoading(false);
@@ -162,12 +191,19 @@ function StudyGroupCard({
   const [confirming, setConfirming] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<"shared" | "copied" | null>(null);
   const next = nextChapterPosition(group.book_id, group.chapter);
 
   function copyCode() {
     navigator.clipboard.writeText(group.invite_code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function share() {
+    const result = await shareOrCopy(buildShareText(group.name, group.invite_code), group.name);
+    setShareFeedback(result);
+    setTimeout(() => setShareFeedback(null), 2000);
   }
 
   return (
@@ -227,11 +263,15 @@ function StudyGroupCard({
         <div className="flex items-center gap-2 pt-1 border-t border-line-subtle">
           <span className="text-[10px] text-ink-muted">Invite code</span>
           {showCode ? (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[12px] font-mono font-bold text-gold tracking-widest">{group.invite_code}</span>
               <button onClick={copyCode} className="flex items-center gap-1 text-[10px] text-ink-muted bg-transparent border-none cursor-pointer p-0">
                 {copied ? <Check size={11} className="text-gold" /> : <Copy size={11} />}
                 {copied ? "Copied" : "Copy"}
+              </button>
+              <button onClick={share} className="flex items-center gap-1 text-[10px] text-ink-muted bg-transparent border-none cursor-pointer p-0">
+                {shareFeedback ? <Check size={11} className="text-gold" /> : <Share2 size={11} />}
+                {shareFeedback === "shared" ? "Shared" : shareFeedback === "copied" ? "Copied" : "Share"}
               </button>
               <button onClick={() => setShowCode(false)} className="text-ink-muted bg-transparent border-none cursor-pointer p-0 ml-1">
                 <X size={11} />
@@ -250,10 +290,16 @@ function StudyGroupCard({
 
 function InviteCodeBanner({ group, onDismiss }: { group: StudyGroup; onDismiss: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<"shared" | "copied" | null>(null);
   function copy() {
     navigator.clipboard.writeText(group.invite_code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+  async function share() {
+    const result = await shareOrCopy(buildShareText(group.name, group.invite_code), group.name);
+    setShareFeedback(result);
+    setTimeout(() => setShareFeedback(null), 2000);
   }
   return (
     <div className="fixed inset-x-0 bottom-6 flex justify-center z-50 px-4">
@@ -265,12 +311,18 @@ function InviteCodeBanner({ group, onDismiss }: { group: StudyGroup; onDismiss: 
           </div>
           <button onClick={onDismiss} className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5 shrink-0"><X size={15} /></button>
         </div>
-        <div className="flex items-center justify-between bg-surface-overlay rounded-lg px-4 py-3">
-          <span className="text-2xl font-mono font-bold text-gold tracking-[0.25em]">{group.invite_code}</span>
-          <button onClick={copy} className="flex items-center gap-1.5 text-[12px] text-ink-secondary bg-surface border border-line-subtle rounded-md px-3 py-1.5 cursor-pointer">
-            {copied ? <Check size={13} className="text-gold" /> : <Copy size={13} />}
-            {copied ? "Copied!" : "Copy"}
-          </button>
+        <div className="bg-surface-overlay rounded-lg px-4 py-3 flex flex-col gap-2">
+          <span className="text-2xl font-mono font-bold text-gold tracking-[0.25em] text-center">{group.invite_code}</span>
+          <div className="flex gap-2">
+            <button onClick={copy} className="flex-1 flex items-center justify-center gap-1.5 text-[12px] text-ink-secondary bg-surface border border-line-subtle rounded-md px-3 py-1.5 cursor-pointer">
+              {copied ? <Check size={13} className="text-gold" /> : <Copy size={13} />}
+              {copied ? "Copied!" : "Copy code"}
+            </button>
+            <button onClick={share} className="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-semibold text-surface bg-gold border-none rounded-md px-3 py-1.5 cursor-pointer">
+              {shareFeedback ? <Check size={13} /> : <Share2 size={13} />}
+              {shareFeedback === "shared" ? "Shared!" : shareFeedback === "copied" ? "Copied!" : "Share"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
