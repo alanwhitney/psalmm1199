@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Trash2, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map } from "lucide-react";
 import Link from "next/link";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
 import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
-import { BIBLE_BOOKS } from "@/lib/books";
-import { detectBibleRefs } from "@/lib/bible-refs";
 import { WJ_OPEN, WJ_CLOSE, stripWj } from "@/lib/bible-api";
 import { MapPlace } from "@/lib/chapter-places";
 import MapPanel from "./MapPanel";
+import NotesPanel from "./NotesPanel";
+import StrongsModal, { StrongsModalData } from "./StrongsModal";
 
 const SCROLL_DELAY_EXTERNAL = 100;  // let React finish painting before scrolling to an externally-highlighted verse
 const SCROLL_DELAY_HASH = 150;      // slightly longer for hash nav — page may still be settling on first mount
@@ -183,7 +183,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       setConcordanceLoading(false);
     }
   }
-  const [strongsModal, setStrongsModal] = useState<{ strongs: string; lemma: string; xlit?: string; def?: string; derivation?: string } | null>(null);
+  const [strongsModal, setStrongsModal] = useState<StrongsModalData | null>(null);
 
   const [strongsError, setStrongsError] = useState<Record<number, string>>({});
 
@@ -407,12 +407,6 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     const saved = sessionStorage.getItem(scrollKey);
     if (saved) el.scrollTop = parseInt(saved, 10);
   }, [scrollKey]);
-
-  // Sorted list of verse numbers that have notes or open drafts
-  const noteVerses = Array.from(new Set([
-    ...notes.map(n => n.verse),
-    ...Object.keys(noteContents).map(Number),
-  ])).sort((a, b) => a - b);
 
   return (
     <div className="flex h-full relative">
@@ -740,196 +734,37 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
       {/* Notes panel */}
       {noteOpen && (
-        <div className="absolute inset-0 z-20 lg:static lg:inset-auto lg:z-auto lg:w-80 xl:w-96 2xl:w-[440px] border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
-          <div className="px-4 py-3 border-b border-b-line-subtle flex items-center justify-between shrink-0">
-            <h3 className="text-[13px] font-semibold text-ink-primary m-0">Notes — {book.name} {chapter}</h3>
-            <button onClick={() => setNoteOpen(false)} className="bg-transparent border-none cursor-pointer text-ink-muted text-lg leading-none p-0">×</button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {noteVerses.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full py-12 px-6 text-center">
-                <StickyNote size={24} className="text-ink-muted mb-3" />
-                <p className="text-[13px] text-ink-muted leading-relaxed">Tap any verse then &ldquo;Add note&rdquo; to start</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-line-subtle">
-                {noteVerses.map(verseNum => {
-                  const savedNote = notes.find(n => n.verse === verseNum);
-                  const content = noteContents[verseNum] ?? "";
-                  const isExpanded = expandedVerse === verseNum;
-                  const refs = isExpanded && content.trim() ? detectBibleRefs(content, translation) : [];
-                  return (
-                    <div key={verseNum}>
-                      <button
-                        onClick={() => setExpandedVerse(isExpanded ? null : verseNum)}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 bg-transparent border-none cursor-pointer text-left"
-                      >
-                        <span className="text-[11px] font-bold text-gold shrink-0">v.{verseNum}</span>
-                        {!isExpanded && (
-                          <span className="text-[11px] text-ink-muted truncate flex-1 italic">
-                            {content ? (content.length > 50 ? content.slice(0, 50) + "…" : content) : "Empty"}
-                          </span>
-                        )}
-                        <ChevronRight size={11} className="text-ink-muted shrink-0 ml-auto" style={{ transform: isExpanded ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }} />
-                      </button>
-                      {isExpanded && (
-                        <div className="px-4 pb-4">
-                          <textarea
-                            autoFocus
-                            className="w-full bg-surface-overlay text-ink-primary text-[13px] p-3 resize-y border border-line-subtle rounded-lg outline-none leading-[1.7] font-[inherit] min-h-[120px] xl:min-h-[180px] 2xl:min-h-[220px]"
-                            placeholder={`Note for verse ${verseNum}…`}
-                            value={content}
-                            onChange={(e) => handleNoteChange(verseNum, e.target.value)}
-                          />
-                          {refs.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {refs.map(ref => (
-                                <a key={ref.href} href={ref.href} className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay border border-line-subtle text-gold no-underline font-semibold">
-                                  {ref.label}
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center gap-2">
-                              {savedNote && (
-                                <button onClick={() => deleteNote(savedNote.id, verseNum)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 flex" title="Delete note">
-                                  <Trash2 size={13} />
-                                </button>
-                              )}
-                              {savedNote?.updated_at && (
-                                <span className="text-[11px] text-ink-muted">{savedLabel(verseNum)}</span>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => saveNote(verseNum, content)}
-                              disabled={noteSaving}
-                              className={`px-[14px] py-1.5 bg-gold text-surface text-xs font-bold rounded-md border-none ${noteSaving ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-                            >
-                              {noteSaving ? "Saving…" : noteSavedVerse === verseNum ? "Saved ✓" : "Save"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        <NotesPanel
+          book={book}
+          chapter={chapter}
+          translation={translation}
+          notes={notes}
+          noteContents={noteContents}
+          expandedVerse={expandedVerse}
+          setExpandedVerse={setExpandedVerse}
+          noteSaving={noteSaving}
+          noteSavedVerse={noteSavedVerse}
+          onChange={handleNoteChange}
+          onSave={saveNote}
+          onDelete={deleteNote}
+          savedLabel={savedLabel}
+          onClose={() => setNoteOpen(false)}
+        />
       )}
 
       {/* Strong's full entry modal */}
-    {strongsModal && (
-      <div className="fixed inset-0 z-50 flex flex-col justify-end">
-        <div className="absolute inset-0 bg-black/60" onClick={() => setStrongsModal(null)} />
-        <div className="relative w-full max-h-[88vh] bg-surface rounded-t-2xl flex flex-col shadow-2xl">
-          {/* Header */}
-          <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-line-subtle shrink-0">
-            <div>
-              <span className="text-[11px] font-mono text-gold">{strongsModal.strongs}</span>
-              {strongsModal.lemma && (
-                <div className="text-[24px] font-semibold text-ink-primary leading-tight mt-0.5">{strongsModal.lemma}</div>
-              )}
-              {strongsModal.xlit && (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-[9px] text-ink-muted uppercase tracking-wider font-semibold">pronounced</span>
-                  <span className="text-[15px] text-ink-secondary italic">{strongsModal.xlit}</span>
-                </div>
-              )}
-            </div>
-            <button onClick={() => setStrongsModal(null)} className="bg-transparent border-none cursor-pointer text-ink-muted p-1 mt-1 shrink-0">
-              <XIcon size={18} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="overflow-y-auto px-5 py-4 flex flex-col gap-5">
-            {strongsModal.def && (
-              <div>
-                <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold mb-2 m-0">Definition</p>
-                <p className="text-[14px] text-ink-secondary leading-[1.8] m-0">{strongsModal.def}</p>
-              </div>
-            )}
-            {strongsModal.derivation && (
-              <div>
-                <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold mb-2 m-0">Origin</p>
-                <p className="text-[13px] text-ink-muted leading-[1.7] m-0">{renderDerivation(strongsModal.derivation)}</p>
-              </div>
-            )}
-            {(() => {
-              const conc = concordanceCache[strongsModal.strongs];
-              const words = conc?.kjvWords;
-              if (!words?.length) return null;
-              const max = words[0].count;
-              return (
-                <div>
-                  <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold mb-2 m-0">Translated as</p>
-                  <div className="flex flex-col gap-1.5">
-                    {words.map(({ word, count }) => (
-                      <div key={word} className="flex items-center gap-2">
-                        <span className="text-[13px] text-ink-primary w-28 shrink-0 capitalize">{word}</span>
-                        <div className="flex-1 h-1.5 rounded-full bg-surface-overlay overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${Math.round((count / max) * 100)}%`, backgroundColor: 'var(--gold)' }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-ink-muted w-8 text-right shrink-0">{count}×</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-            {(() => {
-              const conc = concordanceCache[strongsModal.strongs];
-              const err = concordanceError[strongsModal.strongs];
-              if (err) {
-                return (
-                  <div className="flex items-center gap-3">
-                    <p className="text-[13px] text-red-400 m-0">Couldn&apos;t load concordance data.</p>
-                    <button onClick={() => fetchConcordance(strongsModal.strongs)} className="text-[12px] text-gold-muted bg-transparent border-none cursor-pointer p-0 underline font-semibold">
-                      Retry
-                    </button>
-                  </div>
-                );
-              }
-              if (concordanceLoading && !(strongsModal.strongs in concordanceCache)) {
-                return <p className="text-[13px] text-ink-muted m-0">Loading uses…</p>;
-              }
-              if (!conc?.verses?.length) return null;
-              return (
-                <div>
-                  <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold mb-2 m-0">
-                    Used {conc.count} {conc.count === 1 ? "time" : "times"} in the Bible
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[...conc.verses].sort((a, b) => a.b - b.b || a.c - b.c || a.v - b.v).map((ref, i) => {
-                      const bk = BIBLE_BOOKS[ref.b - 1];
-                      if (!bk) return null;
-                      return (
-                        <a
-                          key={i}
-                          href={`/bible/${bk.id}/${ref.c}?t=${translation}#v${ref.v}`}
-                          onClick={() => setStrongsModal(null)}
-                          className="text-[11px] px-2 py-1 rounded-md bg-surface-raised border border-line-subtle text-ink-secondary no-underline hover:border-gold-muted transition-colors"
-                        >
-                          {bk.abbreviation} {ref.c}:{ref.v}
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-            <div className="h-4 shrink-0" />
-          </div>
-        </div>
-      </div>
-    )}
+      {strongsModal && (
+        <StrongsModal
+          modal={strongsModal}
+          translation={translation}
+          concordance={concordanceCache[strongsModal.strongs]}
+          concordanceError={concordanceError[strongsModal.strongs]}
+          concordanceLoading={concordanceLoading}
+          onClose={() => setStrongsModal(null)}
+          onRetry={() => fetchConcordance(strongsModal.strongs)}
+          renderDerivation={renderDerivation}
+        />
+      )}
     </div>
   );
 }
