@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map, Columns2 } from "lucide-react";
 import Link from "next/link";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
-import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight } from "@/types";
-import { WJ_OPEN, WJ_CLOSE, stripWj } from "@/lib/bible-api";
+import { Book, Translation, Chapter, Bookmark as BookmarkType, Note, Highlight, TRANSLATIONS } from "@/types";
+import { stripWj } from "@/lib/bible-api";
 import { MapPlace } from "@/lib/chapter-places";
 import MapPanel from "./MapPanel";
 import NotesPanel from "./NotesPanel";
 import StrongsModal, { StrongsModalData } from "./StrongsModal";
+import { renderWjText } from "./wj-render";
 
 const SCROLL_DELAY_EXTERNAL = 100;  // let React finish painting before scrolling to an externally-highlighted verse
 const SCROLL_DELAY_HASH = 150;      // slightly longer for hash nav — page may still be settling on first mount
@@ -18,23 +19,6 @@ const COPY_FEEDBACK_MS = 2000;      // how long "Copied" UI state stays visible
 const NOTE_SAVE_FEEDBACK_MS = 2000; // how long "Saved" indicator stays visible after a note saves
 const NOTE_AUTOSAVE_DEBOUNCE = 1500; // debounce delay before auto-saving a note in progress
 const SCROLL_SAVE_DEBOUNCE = 300;    // debounce delay before persisting scroll position to sessionStorage
-
-function renderWjText(text: string): React.ReactNode {
-  if (!text.includes(WJ_OPEN)) return text;
-  const parts: React.ReactNode[] = [];
-  let i = 0;
-  let key = 0;
-  while (i < text.length) {
-    const open = text.indexOf(WJ_OPEN, i);
-    if (open === -1) { parts.push(text.slice(i)); break; }
-    if (open > i) parts.push(text.slice(i, open));
-    const close = text.indexOf(WJ_CLOSE, open + 1);
-    if (close === -1) { parts.push(<span key={key++} className="wj">{text.slice(open + 1)}</span>); break; }
-    parts.push(<span key={key++} className="wj">{text.slice(open + 1, close)}</span>);
-    i = close + 1;
-  }
-  return <>{parts}</>;
-}
 
 const HIGHLIGHT_COLORS = [
   { id: "yellow", bg: "rgba(201,168,76,0.22)",  swatch: "#c9a84c" },
@@ -71,6 +55,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
   const [mapOpen, setMapOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   function openNotes() { setMapOpen(false); setNoteOpen(true); }
   function openMap() { setNoteOpen(false); setMapOpen(true); }
@@ -482,6 +467,36 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                   <Volume2 size={13} /> Listen
                 </button>
               )}
+
+              {/* Compare */}
+              <div className="relative">
+                <button
+                  onClick={() => setCompareOpen(o => !o)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${compareOpen ? "border-line bg-surface-overlay text-ink-primary" : "border-line-subtle bg-surface-raised text-ink-secondary"}`}
+                >
+                  <Columns2 size={13} /> Compare
+                </button>
+                {compareOpen && (
+                  <div
+                    className="absolute z-30 mt-1 left-0 min-w-[160px] bg-surface-raised border border-line-subtle rounded-lg shadow-lg overflow-hidden"
+                    onMouseLeave={() => setCompareOpen(false)}
+                  >
+                    <p className="text-[10px] text-ink-muted uppercase tracking-wider font-semibold px-3 pt-2.5 pb-1">
+                      Compare with…
+                    </p>
+                    {TRANSLATIONS.filter(t => t !== translation).map(t => (
+                      <Link
+                        key={t}
+                        href={`/bible/${book.id}/${chapter}?t=${translation}&compare=${t}`}
+                        className="block px-3 py-1.5 text-[13px] text-ink-primary no-underline hover:bg-surface-overlay font-semibold"
+                        onClick={() => setCompareOpen(false)}
+                      >
+                        {t}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Print */}
               <Link

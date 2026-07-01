@@ -10,12 +10,12 @@ import { getChapterPlaces } from "@/lib/chapter-places";
 
 interface PageProps {
   params: Promise<{ bookId: string; chapter: string }>;
-  searchParams: Promise<{ t?: string; note?: string }>;
+  searchParams: Promise<{ t?: string; note?: string; compare?: string }>;
 }
 
 export default async function BiblePage({ params, searchParams }: PageProps) {
   const { bookId, chapter: chapterStr } = await params;
-  const { t, note: noteParam } = await searchParams;
+  const { t, note: noteParam, compare } = await searchParams;
 
   const book = BOOK_BY_ID[bookId.toUpperCase()];
   if (!book) return notFound();
@@ -28,12 +28,15 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   const translation: Translation =
     (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "KJV";
 
-  let chapterData;
-  try {
-    chapterData = await fetchChapter(bookId.toUpperCase(), chapterNum, translation);
-  } catch {
-    chapterData = null;
-  }
+  const compareTranslation: Translation | null =
+    compare && (TRANSLATIONS as string[]).includes(compare) && compare !== translation
+      ? (compare as Translation)
+      : null;
+
+  const [chapterData, compareData] = await Promise.all([
+    fetchChapter(bookId.toUpperCase(), chapterNum, translation).catch(() => null),
+    compareTranslation ? fetchChapter(bookId.toUpperCase(), chapterNum, compareTranslation).catch(() => null) : Promise.resolve(null),
+  ]);
 
   const cookieStore = await cookies();
   const lastPos = cookieStore.get("last_position")?.value;
@@ -87,6 +90,8 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       backHref={backHref}
       backLabel={backLabel}
       mapPlaces={mapPlaces}
+      compareTranslation={compareTranslation}
+      compareData={compareData}
     />
   );
 }

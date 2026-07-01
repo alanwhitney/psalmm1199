@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Book, Translation, Chapter, Bookmark, Note, Highlight } from "@/types";
 import ReaderLayout from "./ReaderLayout";
 import ChapterView from "./ChapterView";
+import CompareView from "./CompareView";
 import { MapPlace } from "@/lib/chapter-places";
 
 interface Props {
@@ -21,10 +22,12 @@ interface Props {
   backHref?: string;
   backLabel?: string;
   mapPlaces?: MapPlace[];
+  compareTranslation?: Translation | null;
+  compareData?: Chapter | null;
 }
 
 export default function ReaderLayoutWrapper({
-  book, chapter, translation, user, chapterData, initialBookmark, initialNotes, initialHighlights, openNote, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel, mapPlaces = []
+  book, chapter, translation, user, chapterData, initialBookmark, initialNotes, initialHighlights, openNote, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel, mapPlaces = [], compareTranslation = null, compareData = null,
 }: Props) {
   const [verses, setVerses] = useState<{ number: number; text: string }[]>([]);
   const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
@@ -33,6 +36,8 @@ export default function ReaderLayoutWrapper({
   const backHrefWithNote = backHref
     ? `${backHref}${noteOpen ? `${backHref.includes("?") ? "&" : "?"}note=1` : ""}`
     : undefined;
+
+  const inCompareMode = compareTranslation !== null;
 
   return (
     <ReaderLayout
@@ -47,21 +52,32 @@ export default function ReaderLayoutWrapper({
       backHref={backHrefWithNote}
       backLabel={backLabel}
     >
-      <ChapterView
-        book={book}
-        chapter={chapter}
-        translation={translation}
-        chapterData={chapterData}
-        user={user}
-        initialBookmark={initialBookmark}
-        initialNotes={initialNotes}
-        initialHighlights={initialHighlights}
-        openNote={openNote}
-        onNoteOpenChange={setNoteOpen}
-        onVersesReady={setVerses}
-        externalHighlight={highlightVerse}
-        mapPlaces={mapPlaces}
-      />
+      {inCompareMode ? (
+        <CompareView
+          book={book}
+          chapter={chapter}
+          primaryTranslation={translation}
+          compareTranslation={compareTranslation}
+          primaryData={chapterData}
+          compareData={compareData}
+        />
+      ) : (
+        <ChapterView
+          book={book}
+          chapter={chapter}
+          translation={translation}
+          chapterData={chapterData}
+          user={user}
+          initialBookmark={initialBookmark}
+          initialNotes={initialNotes}
+          initialHighlights={initialHighlights}
+          openNote={openNote}
+          onNoteOpenChange={setNoteOpen}
+          onVersesReady={setVerses}
+          externalHighlight={highlightVerse}
+          mapPlaces={mapPlaces}
+        />
+      )}
     </ReaderLayout>
   );
 }
