@@ -141,6 +141,17 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
             line-height: 1.6;
             white-space: pre-wrap;
           }
+          .chapter-note {
+            margin: 0 0 1.75rem 0;
+            padding: 0.85rem 1.1rem;
+            background: #faf5e6;
+            border-left: 3px solid #c9a84c;
+            font-size: 11pt;
+            color: #3a3a3a;
+            font-style: italic;
+            line-height: 1.7;
+            white-space: pre-wrap;
+          }
           .note-label {
             display: block;
             font-family: system-ui, sans-serif;
@@ -175,6 +186,13 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
 
         <h1>{book.name} {chapterNum}</h1>
         <span className="translation-label">{translation}</span>
+
+        {notesByVerse[0] && (
+          <div className="chapter-note">
+            <span className="note-label">Chapter note</span>
+            {notesByVerse[0]}
+          </div>
+        )}
 
         {chapterData ? (
           <div>

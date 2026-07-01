@@ -308,10 +308,15 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 
 function NoteCard({ note, query = "" }: { note: Props["notes"][0]; query?: string }) {
   const snippet = noteSnippet(note.content, query);
+  const isChapterNote = note.verse === 0;
+  const href = `/bible/${note.book_id}/${note.chapter}?note=1${isChapterNote ? "" : `#v${note.verse}`}`;
   return (
-    <Link href={`/bible/${note.book_id}/${note.chapter}?note=1#v${note.verse}`} className="no-underline block border rounded-[10px] px-4 py-[14px] bg-surface-raised border-line-subtle">
+    <Link href={href} className="no-underline block border rounded-[10px] px-4 py-[14px] bg-surface-raised border-line-subtle">
       <div className="flex items-start justify-between gap-3 mb-2">
-        <p className="text-sm font-semibold text-ink-primary m-0">{note.book_name} {note.chapter}:{note.verse}</p>
+        <p className="text-sm font-semibold text-ink-primary m-0">
+          {note.book_name} {note.chapter}
+          {isChapterNote ? <span className="text-ink-muted font-normal"> · chapter note</span> : `:${note.verse}`}
+        </p>
         <span className="text-[11px] text-ink-muted shrink-0" suppressHydrationWarning>{smartDate(note.updated_at)}</span>
       </div>
       <p className="text-[13px] text-ink-secondary m-0 leading-[1.6] italic">

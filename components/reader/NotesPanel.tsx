@@ -26,7 +26,10 @@ export default function NotesPanel({
   expandedVerse, setExpandedVerse, noteSaving, noteSavedVerse,
   onChange, onSave, onDelete, savedLabel, onClose,
 }: Props) {
+  // verse 0 is the chapter-level note. Always include it so users can discover
+  // the feature, with a placeholder when empty.
   const noteVerses = Array.from(new Set([
+    0,
     ...notes.map(n => n.verse),
     ...Object.keys(noteContents).map(Number),
   ])).sort((a, b) => a - b);
@@ -57,7 +60,9 @@ export default function NotesPanel({
                     onClick={() => setExpandedVerse(isExpanded ? null : verseNum)}
                     className="w-full flex items-center gap-2 px-4 py-2.5 bg-transparent border-none cursor-pointer text-left"
                   >
-                    <span className="text-[11px] font-bold text-gold shrink-0">v.{verseNum}</span>
+                    <span className="text-[11px] font-bold text-gold shrink-0">
+                      {verseNum === 0 ? "Chapter" : `v.${verseNum}`}
+                    </span>
                     {!isExpanded && (
                       <span className="text-[11px] text-ink-muted truncate flex-1 italic">
                         {content ? (content.length > 50 ? content.slice(0, 50) + "…" : content) : "Empty"}
@@ -70,7 +75,7 @@ export default function NotesPanel({
                       <textarea
                         autoFocus
                         className="w-full bg-surface-overlay text-ink-primary text-[13px] p-3 resize-y border border-line-subtle rounded-lg outline-none leading-[1.7] font-[inherit] min-h-[120px] xl:min-h-[180px] 2xl:min-h-[220px]"
-                        placeholder={`Note for verse ${verseNum}…`}
+                        placeholder={verseNum === 0 ? `Note for ${book.name} ${chapter}…` : `Note for verse ${verseNum}…`}
                         value={content}
                         onChange={(e) => onChange(verseNum, e.target.value)}
                       />
