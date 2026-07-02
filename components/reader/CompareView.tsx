@@ -120,27 +120,35 @@ export default function CompareView({
               const compareText = compareVerseMap.get(n) ?? "";
               return (
                 <Fragment key={n}>
-                  <div className={`mb-4 md:mb-1 ${primaryRedLetter ? "red-letter" : ""}`}>
+                  <div className="mb-4 md:mb-1">
                     <span className="text-[10px] font-bold text-gold-muted uppercase tracking-widest md:hidden">
                       {primaryTranslation}
                     </span>
-                    <p className="m-0 px-1 py-1">
+                    <Link
+                      href={`/bible/${book.id}/${chapter}?t=${primaryTranslation}#v${n}`}
+                      title={`Open ${primaryTranslation} ${book.name} ${chapter}:${n}`}
+                      className={`block m-0 px-1 py-1 rounded-md no-underline text-ink-primary transition-colors hover:bg-gold/[6%] ${primaryRedLetter ? "red-letter" : ""}`}
+                    >
                       <sup className="text-[10px] font-bold mr-[3px] font-sans align-super select-none text-gold-muted">
                         {n}
                       </sup>
                       {primaryText ? renderWjText(primaryText) : <span className="text-ink-muted italic">—</span>}
-                    </p>
+                    </Link>
                   </div>
-                  <div className={`mb-8 md:mb-1 ${compareRedLetter ? "red-letter" : ""}`}>
+                  <div className="mb-8 md:mb-1">
                     <span className="text-[10px] font-bold text-gold-muted uppercase tracking-widest md:hidden">
                       {compareTranslation}
                     </span>
-                    <p className="m-0 px-1 py-1">
+                    <Link
+                      href={`/bible/${book.id}/${chapter}?t=${compareTranslation}#v${n}`}
+                      title={`Open ${compareTranslation} ${book.name} ${chapter}:${n}`}
+                      className={`block m-0 px-1 py-1 rounded-md no-underline text-ink-primary transition-colors hover:bg-gold/[6%] ${compareRedLetter ? "red-letter" : ""}`}
+                    >
                       <sup className="text-[10px] font-bold mr-[3px] font-sans align-super select-none text-gold-muted">
                         {n}
                       </sup>
                       {compareText ? renderWjText(compareText) : <span className="text-ink-muted italic">—</span>}
-                    </p>
+                    </Link>
                   </div>
                 </Fragment>
               );
