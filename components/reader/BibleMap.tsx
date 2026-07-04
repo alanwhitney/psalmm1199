@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, LayersControl, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "@/components/ThemeProvider";
@@ -26,7 +26,7 @@ function FitBounds({ places }: { places: MapPlace[] }) {
   useEffect(() => {
     if (places.length === 0) return;
     if (places.length === 1) {
-      map.setView([places[0].lat, places[0].lon], 9);
+      map.setView([places[0].lat, places[0].lon], 8);
     } else {
       map.fitBounds(
         L.latLngBounds(places.map((p) => [p.lat, p.lon] as [number, number])),
@@ -41,7 +41,7 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
   const { theme } = useTheme();
   const dark = theme === "dark";
 
-  const tileUrl = dark
+  const modernUrl = dark
     ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
     : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
@@ -58,12 +58,25 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
       style={{ height: "100%", width: "100%" }}
       zoomControl
     >
-      <TileLayer
-        url={tileUrl}
-        attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-        maxZoom={19}
-        subdomains="abcd"
-      />
+      <LayersControl position="topright">
+        <LayersControl.BaseLayer checked name="Ancient world">
+          <TileLayer
+            url="/api/map-tile/{z}/{x}/{y}"
+            attribution='Tiles by <a href="https://cawm.lib.uiowa.edu" target="_blank" rel="noopener">CAWM</a> / University of Iowa'
+            maxNativeZoom={8}
+            maxZoom={12}
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Modern">
+          <TileLayer
+            url={modernUrl}
+            attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+            maxZoom={19}
+            subdomains="abcd"
+          />
+        </LayersControl.BaseLayer>
+      </LayersControl>
+
       <FitBounds places={places} />
       {places.map((p) => (
         <Marker key={p.name} position={[p.lat, p.lon]} icon={icon}>
