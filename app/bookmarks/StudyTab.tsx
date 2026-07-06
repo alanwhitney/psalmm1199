@@ -92,9 +92,9 @@ export default function StudyTab({ initialGroups, userId }: { initialGroups: Stu
     setGroups(prev => prev.filter(g => g.id !== id));
   }
 
-  async function updateGroup(id: string, bookId: string, bookName: string, chapter: number, translation: string) {
-    await supabase.from("study_groups").update({ book_id: bookId, book_name: bookName, chapter, translation }).eq("id", id);
-    setGroups(prev => prev.map(g => g.id === id ? { ...g, book_id: bookId, book_name: bookName, chapter, translation } : g));
+  async function updateGroup(id: string, name: string, bookId: string, bookName: string, chapter: number, translation: string) {
+    await supabase.from("study_groups").update({ name, book_id: bookId, book_name: bookName, chapter, translation }).eq("id", id);
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, name, book_id: bookId, book_name: bookName, chapter, translation } : g));
     setEditingGroup(null);
   }
 
@@ -158,7 +158,7 @@ export default function StudyTab({ initialGroups, userId }: { initialGroups: Stu
         <EditModal
           group={editingGroup}
           onClose={() => setEditingGroup(null)}
-          onSave={(bookId, bookName, chapter, translation) => updateGroup(editingGroup.id, bookId, bookName, chapter, translation)}
+          onSave={(name, bookId, bookName, chapter, translation) => updateGroup(editingGroup.id, name, bookId, bookName, chapter, translation)}
         />
       )}
 
@@ -332,19 +332,23 @@ function InviteCodeBanner({ group, onDismiss }: { group: StudyGroup; onDismiss: 
 function EditModal({ group, onClose, onSave }: {
   group: StudyGroup;
   onClose: () => void;
-  onSave: (bookId: string, bookName: string, chapter: number, translation: string) => void;
+  onSave: (name: string, bookId: string, bookName: string, chapter: number, translation: string) => void;
 }) {
+  const [name, setName] = useState(group.name);
   const [bookId, setBookId] = useState(group.book_id);
   const [chapter, setChapter] = useState(group.chapter);
   const [translation, setTranslation] = useState<Translation>(group.translation as Translation);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const book = BOOK_BY_ID[bookId];
 
   async function submit() {
     if (!book) return;
+    if (!name.trim()) { setError("Please enter a name."); return; }
+    setError("");
     setLoading(true);
-    await onSave(book.id, book.name, chapter, translation);
+    await onSave(name.trim(), book.id, book.name, chapter, translation);
     setLoading(false);
   }
 
@@ -353,13 +357,19 @@ function EditModal({ group, onClose, onSave }: {
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-line-subtle">
-          <div>
-            <h2 className="text-[15px] font-semibold text-ink-primary m-0">Edit Study Group</h2>
-            <p className="text-[11px] text-ink-muted mt-0.5 m-0">{group.name}</p>
-          </div>
+          <h2 className="text-[15px] font-semibold text-ink-primary m-0">Edit Study Group</h2>
           <button onClick={onClose} className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5"><X size={16} /></button>
         </div>
         <div className="px-5 py-4 flex flex-col gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider">Name</span>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Sunday Morning Group"
+              className="px-3 py-2 bg-surface-overlay border border-line-subtle rounded-lg text-sm text-ink-primary placeholder:text-ink-muted outline-none focus:border-line"
+            />
+          </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1.5">
               <span className="text-[11px] text-ink-muted font-semibold uppercase tracking-wider">Book</span>
@@ -393,6 +403,7 @@ function EditModal({ group, onClose, onSave }: {
               {TRANSLATIONS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </label>
+          {error && <p className="text-[12px] text-red-400 m-0">{error}</p>}
         </div>
         <div className="px-5 pb-5 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 text-sm text-ink-muted bg-surface-overlay border border-line-subtle rounded-lg cursor-pointer">Cancel</button>
