@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, X, AlertCircle } from "lucide-react";
 import { Book, Translation, Chapter } from "@/types";
 import { renderWjText } from "./wj-render";
+import { useTheme } from "@/components/ThemeProvider";
 
 const SCROLL_SAVE_DEBOUNCE = 300;
 
@@ -22,6 +23,7 @@ interface Props {
 export default function CompareView({
   book, chapter, primaryTranslation, compareTranslation, primaryData, compareData,
 }: Props) {
+  const { showSections } = useTheme();
   const prevChapter = chapter > 1 ? chapter - 1 : null;
   const nextChapter = chapter < book.chapters ? chapter + 1 : null;
 
@@ -118,9 +120,12 @@ export default function CompareView({
             {allVerseNumbers.map((n) => {
               const primaryText = primaryVerseMap.get(n) ?? "";
               const compareText = compareVerseMap.get(n) ?? "";
+              const primaryHeading = showSections ? primaryData.headings?.[n] : null;
+              const compareHeading = showSections ? compareData.headings?.[n] : null;
               return (
                 <Fragment key={n}>
                   <div className="mb-4 md:mb-1">
+                    {primaryHeading && <h3 className="section-heading">{primaryHeading}</h3>}
                     <span className="text-[10px] font-bold text-gold-muted uppercase tracking-widest md:hidden">
                       {primaryTranslation}
                     </span>
@@ -136,6 +141,7 @@ export default function CompareView({
                     </Link>
                   </div>
                   <div className="mb-8 md:mb-1">
+                    {compareHeading && <h3 className="section-heading">{compareHeading}</h3>}
                     <span className="text-[10px] font-bold text-gold-muted uppercase tracking-widest md:hidden">
                       {compareTranslation}
                     </span>
