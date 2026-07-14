@@ -221,6 +221,36 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     );
   }
 
+  async function openStrongsById(id: string) {
+    for (const words of Object.values(strongsCache)) {
+      const found = words?.find(w => w.strongs === id);
+      if (found) {
+        setStrongsModal({ strongs: found.strongs, lemma: found.lemma, xlit: found.xlit, def: found.def, derivation: found.derivation });
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`/api/strongs/entry?id=${id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setStrongsModal({ strongs: id, lemma: data.lemma, xlit: data.xlit, def: data.def, derivation: data.derivation });
+    } catch {
+      // silent — user can click again
+    }
+  }
+
+  function renderDerivationForModal(text: string) {
+    const parts = text.split(/([HG]\d+)/g);
+    return parts.map((part, i) =>
+      /^[HG]\d+$/.test(part) ? (
+        <button key={i} onClick={() => openStrongsById(part)}
+          className="font-mono text-[10px] cursor-pointer border-none bg-transparent px-0 underline decoration-dotted text-gold-muted hover:text-gold">
+          {part}
+        </button>
+      ) : <span key={i}>{part}</span>
+    );
+  }
+
   useEffect(() => {
     if (!activeStrongsKey) return;
     const [verseStr, idxStr] = activeStrongsKey.split("-");
@@ -231,6 +261,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     fetchConcordance(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStrongsKey, strongsCache, concordanceCache, concordanceError]);
+
+  useEffect(() => {
+    if (!strongsModal) return;
+    const id = strongsModal.strongs;
+    if (id in concordanceCache || id in concordanceError) return;
+    fetchConcordance(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strongsModal, concordanceCache, concordanceError]);
 
   function selectVerse(num: number) {
     setSelectedVerse(prev => {
@@ -782,7 +820,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           concordanceLoading={concordanceLoading}
           onClose={() => setStrongsModal(null)}
           onRetry={() => fetchConcordance(strongsModal.strongs)}
-          renderDerivation={renderDerivation}
+          renderDerivation={renderDerivationForModal}
         />
       )}
     </div>
