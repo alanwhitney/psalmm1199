@@ -11,8 +11,10 @@ interface PageProps {
   searchParams: Promise<{ t?: string }>;
 }
 
-function renderWjSegments(text: string): React.ReactNode {
-  if (!text.includes(WJ_OPEN)) return text;
+const REDLETTER_TRANSLATIONS: Translation[] = ["KJV", "NIV"];
+
+function renderWjSegments(text: string, redLetter: boolean): React.ReactNode {
+  if (!redLetter || !text.includes(WJ_OPEN)) return text;
   const parts: React.ReactNode[] = [];
   let i = 0;
   let key = 0;
@@ -39,6 +41,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   if (isNaN(chapterNum) || chapterNum < 1 || chapterNum > book.chapters) return notFound();
 
   const translation: Translation = (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "KJV";
+  const redLetter = REDLETTER_TRANSLATIONS.includes(translation);
 
   let chapterData;
   try {
@@ -201,7 +204,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
               return (
                 <div key={verse.number} className="verse">
                   <span className="verse-num">{verse.number}</span>
-                  {renderWjSegments(verse.text)}
+                  {renderWjSegments(verse.text, redLetter)}
                   {note && (
                     <div className="note">
                       <span className="note-label">Note (v.{verse.number})</span>
