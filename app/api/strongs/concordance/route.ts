@@ -26,7 +26,12 @@ export async function GET(req: NextRequest) {
     const wordCounts: Record<string, number> = {};
     const markRe = /(\w[\w'-]*)\s*<mark><S>\d+<\/S><\/mark>/g;
 
-    const verses = raw.map((item: { book: number; chapter: number; verse: number; text?: string }) => {
+    // bolls.life now returns substring matches alongside exact hits; filter to
+    // only verses that have a <mark> tag (the exact match indicator).
+    const exactMatches = (raw as { book: number; chapter: number; verse: number; text?: string }[])
+      .filter(item => /<mark>/.test(item.text ?? ""));
+
+    const verses = exactMatches.map((item) => {
       if (item.text) {
         let m;
         markRe.lastIndex = 0;
