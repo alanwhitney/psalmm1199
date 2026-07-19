@@ -226,6 +226,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       const found = words?.find(w => w.strongs === id);
       if (found) {
         setStrongsModal({ strongs: found.strongs, lemma: found.lemma, xlit: found.xlit, def: found.def, derivation: found.derivation });
+        if (!(id in concordanceCache) && !(id in concordanceError)) fetchConcordance(id);
         return;
       }
     }
@@ -234,6 +235,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       if (!res.ok) return;
       const data = await res.json();
       setStrongsModal({ strongs: id, lemma: data.lemma, xlit: data.xlit, def: data.def, derivation: data.derivation });
+      if (!(id in concordanceCache) && !(id in concordanceError)) fetchConcordance(id);
     } catch {
       // silent — user can click again
     }
@@ -261,14 +263,6 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     fetchConcordance(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStrongsKey, strongsCache, concordanceCache, concordanceError]);
-
-  useEffect(() => {
-    if (!strongsModal) return;
-    const id = strongsModal.strongs;
-    if (id in concordanceCache || id in concordanceError) return;
-    fetchConcordance(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [strongsModal, concordanceCache, concordanceError]);
 
   function selectVerse(num: number) {
     setSelectedVerse(prev => {
