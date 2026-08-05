@@ -6,6 +6,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "@/components/ThemeProvider";
 import { MapPlace } from "@/lib/chapter-places";
+import { periodMaps } from "@/lib/data/period-maps";
+import PeriodOverlayLayer from "./PeriodOverlayLayer";
 
 function makeIcon(dark: boolean) {
   const fill = dark ? "#c9a84c" : "#b07d20";
@@ -75,6 +77,12 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
             subdomains="abcd"
           />
         </LayersControl.BaseLayer>
+
+        {periodMaps.map((pm) => (
+          <LayersControl.Overlay key={pm.id} name={pm.label}>
+            <PeriodOverlayLayer data={pm} />
+          </LayersControl.Overlay>
+        ))}
       </LayersControl>
 
       <FitBounds places={places} />
