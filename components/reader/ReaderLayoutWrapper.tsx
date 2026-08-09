@@ -63,6 +63,7 @@ export default function ReaderLayoutWrapper({
         />
       ) : (
         <ChapterView
+          key={`${book.id}:${chapter}:${translation}`}
           book={book}
           chapter={chapter}
           translation={translation}
