@@ -20,8 +20,11 @@ export default function MapPanel({
   places: MapPlace[];
   onClose: () => void;
 }) {
+  // lg:relative + lg:z-0 keeps this a stacking context on desktop too, so
+  // Leaflet's internal pane/control z-indexes (up to 1000) stay contained
+  // below the Strong's modal instead of painting over it.
   return (
-    <div className="absolute inset-0 z-20 lg:static lg:inset-auto lg:z-auto lg:w-80 xl:w-96 2xl:w-[440px] border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
+    <div className="absolute inset-0 z-20 lg:relative lg:inset-auto lg:z-0 lg:w-80 xl:w-96 2xl:w-[440px] border-t lg:border-t-0 lg:border-l border-line-subtle bg-surface-raised flex flex-col shrink-0">
       {/* Header */}
       <div className="px-4 py-3 border-b border-line-subtle flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
