@@ -43,10 +43,6 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
   const { theme } = useTheme();
   const dark = theme === "dark";
 
-  const modernUrl = dark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-
   const center: [number, number] =
     places.length > 0 ? [places[0].lat, places[0].lon] : [31.77, 35.23];
 
@@ -71,10 +67,11 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer name="Modern">
           <TileLayer
-            url={modernUrl}
-            attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
             maxZoom={19}
-            subdomains="abcd"
+            subdomains="abc"
+            className={dark ? "modern-basemap-dark" : undefined}
           />
         </LayersControl.BaseLayer>
 

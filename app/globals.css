@@ -35,6 +35,12 @@
   --christ-red: #e05c50;
 }
 
+/* Leaflet "Modern" base layer (plain OpenStreetMap tiles have no dark style,
+   so approximate one in dark mode) */
+.dark .leaflet-layer.modern-basemap-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(90%);
+}
+
 /* Base */
 html, body {
   background-color: var(--surface);
