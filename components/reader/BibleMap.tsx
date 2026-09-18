@@ -67,10 +67,9 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer name="Modern">
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+            attribution='Tiles &copy; <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>'
             maxZoom={19}
-            subdomains="abc"
             className={dark ? "modern-basemap-dark" : undefined}
           />
         </LayersControl.BaseLayer>

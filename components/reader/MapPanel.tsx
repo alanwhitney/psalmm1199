@@ -73,12 +73,21 @@ export default function MapPanel({
           </a>{" "}
           · Tiles:{" "}
           <a
-            href="https://carto.com/attributions"
+            href="https://cawm.lib.uiowa.edu"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gold-muted no-underline"
           >
-            CARTO
+            CAWM
+          </a>{" "}
+          /{" "}
+          <a
+            href="https://www.esri.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gold-muted no-underline"
+          >
+            Esri
           </a>
         </p>
       </div>
