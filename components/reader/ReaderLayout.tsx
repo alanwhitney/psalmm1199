@@ -43,7 +43,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [translationOpen, setTranslationOpen] = useState(true);
+  const [translationOpen, setTranslationOpen] = useState(false);
   const [displayOpen, setDisplayOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<RecentChapter[]>([]);
