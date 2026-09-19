@@ -25,8 +25,15 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
     return notFound();
   }
 
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const preferredRaw = user?.user_metadata?.preferred_translation;
+  const preferredTranslation: Translation | null =
+    (TRANSLATIONS as string[]).includes(preferredRaw) ? (preferredRaw as Translation) : null;
+
   const translation: Translation =
-    (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : "KJV";
+    (TRANSLATIONS as string[]).includes(t as string) ? (t as Translation) : preferredTranslation ?? "KJV";
 
   const compareTranslation: Translation | null =
     compare && (TRANSLATIONS as string[]).includes(compare) && compare !== translation
@@ -44,9 +51,6 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
   const isDifferentChapter = lastBookId !== bookId.toUpperCase() || lastChapter !== String(chapterNum);
   const backHref = isDifferentChapter ? lastPositionUrl(lastPos) : undefined;
   const backLabel = isDifferentChapter ? lastPositionLabel(lastPos) : undefined;
-
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
   let bookmark = null;
   let initialNotes: Note[] = [];
@@ -80,6 +84,7 @@ export default async function BiblePage({ params, searchParams }: PageProps) {
       chapter={chapterNum}
       translation={translation}
       user={user}
+      preferredTranslation={preferredTranslation}
       chapterData={chapterData}
       initialBookmark={bookmark}
       initialNotes={initialNotes}

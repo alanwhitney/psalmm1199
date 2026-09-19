@@ -12,6 +12,7 @@ interface Props {
   chapter: number;
   translation: Translation;
   user: { id: string; email?: string } | null;
+  preferredTranslation?: Translation | null;
   chapterData: Chapter | null;
   initialBookmark: Bookmark | null;
   initialNotes: Note[];
@@ -27,7 +28,7 @@ interface Props {
 }
 
 export default function ReaderLayoutWrapper({
-  book, chapter, translation, user, chapterData, initialBookmark, initialNotes, initialHighlights, openNote, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel, mapPlaces = [], compareTranslation = null, compareData = null,
+  book, chapter, translation, user, preferredTranslation = null, chapterData, initialBookmark, initialNotes, initialHighlights, openNote, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel, mapPlaces = [], compareTranslation = null, compareData = null,
 }: Props) {
   const [verses, setVerses] = useState<{ number: number; text: string }[]>([]);
   const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
@@ -45,6 +46,7 @@ export default function ReaderLayoutWrapper({
       chapter={chapter}
       translation={translation}
       user={user}
+      preferredTranslation={preferredTranslation}
       verses={verses}
       onHighlightVerse={setHighlightVerse}
       bookmarkPositions={bookmarkPositions}

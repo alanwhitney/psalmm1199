@@ -16,6 +16,7 @@ interface ReaderLayoutProps {
   chapter: number;
   translation: Translation;
   user: { id: string; email?: string } | null;
+  preferredTranslation?: Translation | null;
   children: React.ReactNode;
   verses?: { number: number; text: string }[];
   onHighlightVerse?: (verse: number | null) => void;
@@ -35,7 +36,7 @@ interface RecentChapter {
   translation: Translation;
 }
 
-export default function ReaderLayout({ book, chapter, translation, user, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel }: ReaderLayoutProps) {
+export default function ReaderLayout({ book, chapter, translation, user, preferredTranslation = null, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel }: ReaderLayoutProps) {
   const router = useRouter();
   const supabase = createClient();
   const { theme, mounted, toggle, fontSize, incFontSize, decFontSize, showSections, toggleShowSections } = useTheme();
@@ -47,6 +48,7 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   const [displayOpen, setDisplayOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<RecentChapter[]>([]);
+  const [preferred, setPreferred] = useState<Translation | null>(preferredTranslation);
 
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
@@ -73,6 +75,11 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
   function goTo(bookId: string, ch: number, t: Translation = translation) {
     router.push(`/bible/${bookId}/${ch}?t=${t}`);
     if (!isDesktop) setMobileOpen(false);
+  }
+
+  async function savePreferredTranslation() {
+    const { error } = await supabase.auth.updateUser({ data: { preferred_translation: translation } });
+    if (!error) setPreferred(translation);
   }
 
   async function handleSignOut() {
@@ -117,6 +124,17 @@ export default function ReaderLayout({ book, chapter, translation, user, childre
                   : "bg-surface-overlay text-ink-secondary border border-line-subtle"
               }`}>{t}</button>
             ))}
+          </div>
+        )}
+        {translationOpen && user && (
+          <div className="px-4 pb-3 -mt-1">
+            {(preferred ?? "KJV") === translation ? (
+              <p className="text-[10px] text-ink-muted m-0">{translation} is your default translation</p>
+            ) : (
+              <button onClick={savePreferredTranslation} className="bg-transparent border-none p-0 cursor-pointer text-[10px] text-gold-muted underline">
+                Make {translation} my default
+              </button>
+            )}
           </div>
         )}
       </div>
