@@ -5,8 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Menu, X, LogIn, LogOut, Bookmark, CalendarDays, Info, BookHeart, Sun, Moon } from "lucide-react";
 import AppLogo from "@/components/AppLogo";
+import HistorySection from "@/components/HistorySection";
 import { useTheme } from "@/components/ThemeProvider";
+import { useRecentChapters } from "@/hooks/useRecentChapters";
 import { createClient } from "@/lib/supabase/client";
+import { Translation } from "@/types";
 
 interface Props {
   user: { id: string; email?: string } | null;
@@ -26,6 +29,8 @@ export default function AppLayout({ user, backHref, backLabel = "Reading", title
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const history = useRecentChapters();
+
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
     check();
@@ -34,6 +39,11 @@ export default function AppLayout({ user, backHref, backLabel = "Reading", title
   }, []);
 
   const sidebarVisible = isDesktop || mobileOpen;
+
+  function goToChapter(bookId: string, chapter: number, translation: Translation) {
+    router.push(`/bible/${bookId}/${chapter}?t=${translation}`);
+    setMobileOpen(false);
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -82,6 +92,9 @@ export default function AppLayout({ user, backHref, backLabel = "Reading", title
           </div>
         </div>
       </div>
+
+      {/* History (collapsible) */}
+      <HistorySection history={history} onSelect={goToChapter} />
 
       {/* Nav links */}
       <div className="flex-1 px-3 py-3">

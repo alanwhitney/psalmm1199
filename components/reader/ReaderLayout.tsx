@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Menu, X, LogIn, LogOut, Bookmark, StickyNote, CalendarDays, Search, Sun, Moon, Info, BookHeart } from "lucide-react";
 import AppLogo from "@/components/AppLogo";
+import HistorySection from "@/components/HistorySection";
 import { useTheme } from "@/components/ThemeProvider";
+import { useRecentChapters } from "@/hooks/useRecentChapters";
 import SearchPanel from "./SearchPanel";
 import { Book, Translation, TRANSLATIONS } from "@/types";
 import { OT_BOOKS, NT_BOOKS } from "@/lib/books";
@@ -27,14 +29,6 @@ interface ReaderLayoutProps {
 }
 
 const DESKTOP_BREAKPOINT = 1024;
-const HISTORY_KEY = "psalm1199-recent-chapters";
-
-interface RecentChapter {
-  bookId: string;
-  bookName: string;
-  chapter: number;
-  translation: Translation;
-}
 
 export default function ReaderLayout({ book, chapter, translation, user, preferredTranslation = null, children, verses = [], onHighlightVerse, bookmarkPositions = {}, noteChapters = {}, backHref, backLabel }: ReaderLayoutProps) {
   const router = useRouter();
@@ -46,9 +40,9 @@ export default function ReaderLayout({ book, chapter, translation, user, preferr
   const [searchOpen, setSearchOpen] = useState(false);
   const [translationOpen, setTranslationOpen] = useState(false);
   const [displayOpen, setDisplayOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [history, setHistory] = useState<RecentChapter[]>([]);
   const [preferred, setPreferred] = useState<Translation | null>(preferredTranslation);
+
+  const history = useRecentChapters({ bookId: book.id, bookName: book.name, chapter, translation });
 
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
@@ -56,19 +50,6 @@ export default function ReaderLayout({ book, chapter, translation, user, preferr
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(HISTORY_KEY);
-      const list: RecentChapter[] = raw ? JSON.parse(raw) : [];
-      const rest = list.filter((e) => !(e.bookId === book.id && e.chapter === chapter));
-      const updated = [{ bookId: book.id, bookName: book.name, chapter, translation }, ...rest].slice(0, 5);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-      setHistory(updated);
-    } catch {
-      // localStorage unavailable (private mode, etc.) — history just won't persist
-    }
-  }, [book.id, book.name, chapter, translation]);
 
   const sidebarVisible = isDesktop || mobileOpen;
 
@@ -188,37 +169,7 @@ export default function ReaderLayout({ book, chapter, translation, user, preferr
       </div>
 
       {/* History (collapsible) */}
-      <div className="border-b border-b-line-subtle">
-        <button
-          onClick={() => setHistoryOpen(o => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-transparent border-none cursor-pointer"
-        >
-          <p className="text-[10px] uppercase tracking-[0.1em] text-ink-muted font-semibold m-0">History</p>
-          <ChevronRight size={12} className="text-ink-muted transition-transform" style={{ transform: historyOpen ? "rotate(90deg)" : undefined }} />
-        </button>
-        {historyOpen && (
-          <div className="px-4 pb-3 flex flex-col gap-1">
-            {history.length === 0 && (
-              <p className="text-[11px] text-ink-muted m-0">No chapters viewed yet.</p>
-            )}
-            {history.map((h) => {
-              const active = h.bookId === book.id && h.chapter === chapter;
-              return (
-                <button
-                  key={`${h.bookId}-${h.chapter}`}
-                  onClick={() => goTo(h.bookId, h.chapter, h.translation)}
-                  className={`w-full flex items-center justify-between px-2 py-1.5 text-[12px] rounded-md cursor-pointer border-none ${
-                    active ? "bg-gold text-surface font-semibold" : "bg-surface-overlay text-ink-secondary"
-                  }`}
-                >
-                  <span>{h.bookName} {h.chapter}</span>
-                  <span className={`text-[10px] font-bold ${active ? "text-surface" : "text-ink-muted"}`}>{h.translation}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <HistorySection history={history} activeBookId={book.id} activeChapter={chapter} onSelect={goTo} />
 
       {/* Book list */}
       <div className="flex-1 overflow-y-auto py-2">
