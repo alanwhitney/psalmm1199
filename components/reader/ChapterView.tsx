@@ -622,6 +622,13 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                           <button onClick={() => setSelectedVerse(null)} className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
                             <XIcon size={13} />
                           </button>
+                          <button
+                            onClick={() => openNoteForVerse(verse.number)}
+                            className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${hasNote ? "text-gold" : "text-ink-secondary"}`}
+                          >
+                            <StickyNote size={12} />
+                            {hasNote ? "Edit note" : "Add note"}
+                          </button>
                         </div>
 
                         {/* Highlight row */}
@@ -639,17 +646,6 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                               <XIcon size={11} /> Remove
                             </button>
                           )}
-                        </div>
-
-                        {/* Note row */}
-                        <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-line-subtle">
-                          <button
-                            onClick={() => openNoteForVerse(verse.number)}
-                            className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${hasNote ? "text-gold" : "text-ink-secondary"}`}
-                          >
-                            <StickyNote size={12} />
-                            {hasNote ? "Edit note" : "Add note"}
-                          </button>
                         </div>
 
                         {/* Cross-references row */}
