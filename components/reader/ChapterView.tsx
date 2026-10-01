@@ -619,15 +619,16 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                               <Share2 size={12} /> Share
                             </button>
                           )}
-                          <button onClick={() => setSelectedVerse(null)} className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
-                            <XIcon size={13} />
-                          </button>
                           <button
                             onClick={() => openNoteForVerse(verse.number)}
                             className={`flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold cursor-pointer ${hasNote ? "text-gold" : "text-ink-secondary"}`}
                           >
                             <StickyNote size={12} />
                             {hasNote ? "Edit note" : "Add note"}
+                          </button>
+
+                          <button onClick={() => setSelectedVerse(null)} className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
+                            <XIcon size={13} />
                           </button>
                         </div>
 
