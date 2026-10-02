@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bookmark, StickyNote, Trash2, ChevronRight, CalendarDays, Search, X, ChevronsRight, Download } from "lucide-react";
+import { Bookmark, StickyNote, Trash2, ChevronRight, ChevronUp, ChevronDown, CalendarDays, Search, X, ChevronsRight, Download } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
@@ -75,6 +75,29 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
     setBookmarks(prev => prev.filter(b => b.id !== id));
   }
 
+  // List is ordered by sorted_at desc, so moving = swapping sorted_at with the neighbour
+  async function moveBookmark(index: number, dir: -1 | 1) {
+    const a = bookmarks[index];
+    const b = bookmarks[index + dir];
+    if (!a || !b) return;
+    let aSorted = b.sorted_at;
+    let bSorted = a.sorted_at;
+    if (aSorted === bSorted) {
+      // Tie (shouldn't normally happen) — nudge so the swap actually sticks
+      aSorted = new Date(new Date(b.sorted_at).getTime() - dir).toISOString();
+    }
+    const prev = bookmarks;
+    const next = [...bookmarks];
+    next[index] = { ...b, sorted_at: bSorted };
+    next[index + dir] = { ...a, sorted_at: aSorted };
+    setBookmarks(next);
+    const [r1, r2] = await Promise.all([
+      supabase.from("bookmarks").update({ sorted_at: aSorted }).eq("id", a.id),
+      supabase.from("bookmarks").update({ sorted_at: bSorted }).eq("id", b.id),
+    ]);
+    if (r1.error || r2.error) setBookmarks(prev);
+  }
+
   async function advanceBookmark(id: string, bookId: string, chapter: number) {
     const next = nextChapterPosition(bookId, chapter);
     if (!next) return;
@@ -135,7 +158,16 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
             <EmptyState icon={<Bookmark size={28} className="text-ink-muted" />} title="No bookmarks yet" message="While reading, tap the Bookmark button to save your place in any chapter." action={{ href: "/bible/GEN/1", label: "Start reading" }} />
           ) : (
             <div className="flex flex-col gap-2">
-              {bookmarks.map(bm => <BookmarkCard key={bm.id} bookmark={bm} onDelete={() => deleteBookmark(bm.id)} onAdvance={() => advanceBookmark(bm.id, bm.book_id, bm.chapter)} />)}
+              {bookmarks.map((bm, i) => (
+                <BookmarkCard
+                  key={bm.id}
+                  bookmark={bm}
+                  onDelete={() => deleteBookmark(bm.id)}
+                  onAdvance={() => advanceBookmark(bm.id, bm.book_id, bm.chapter)}
+                  onMoveUp={i > 0 ? () => moveBookmark(i, -1) : undefined}
+                  onMoveDown={i < bookmarks.length - 1 ? () => moveBookmark(i, 1) : undefined}
+                />
+              ))}
             </div>
           )
         )}
@@ -235,12 +267,22 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
   );
 }
 
-function BookmarkCard({ bookmark, onDelete, onAdvance }: { bookmark: BookmarkType; onDelete: () => void; onAdvance: () => void }) {
+function BookmarkCard({ bookmark, onDelete, onAdvance, onMoveUp, onMoveDown }: { bookmark: BookmarkType; onDelete: () => void; onAdvance: () => void; onMoveUp?: () => void; onMoveDown?: () => void }) {
   const [confirming, setConfirming] = useState(false);
   const next = nextChapterPosition(bookmark.book_id, bookmark.chapter);
   return (
     <div className="bg-surface-raised border border-line-subtle rounded-[10px] px-4 py-[14px] flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
+        {(onMoveUp || onMoveDown) && (
+          <div className="flex flex-col -my-1 -ml-1.5 shrink-0">
+            <button onClick={onMoveUp} disabled={!onMoveUp} title="Move up" className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5 flex disabled:opacity-20 disabled:cursor-default">
+              <ChevronUp size={14} />
+            </button>
+            <button onClick={onMoveDown} disabled={!onMoveDown} title="Move down" className="bg-transparent border-none cursor-pointer text-ink-muted p-0.5 flex disabled:opacity-20 disabled:cursor-default">
+              <ChevronDown size={14} />
+            </button>
+          </div>
+        )}
         <div className="w-8 h-8 rounded-lg bg-gold/[8%] border border-gold-muted flex items-center justify-center shrink-0">
           <Bookmark size={14} className="text-gold" />
         </div>

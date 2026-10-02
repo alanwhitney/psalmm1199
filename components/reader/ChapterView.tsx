@@ -351,7 +351,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   async function saveLabel() {
     if (!bookmark) return;
-    const { error } = await supabase.from("bookmarks").update({ label: bookmarkLabel, sorted_at: new Date().toISOString() }).eq("id", bookmark.id);
+    const { error } = await supabase.from("bookmarks").update({ label: bookmarkLabel }).eq("id", bookmark.id);
     if (!error) { setLabelEditing(false); setBookmark({ ...bookmark, label: bookmarkLabel }); router.refresh(); }
   }
 
