@@ -12,6 +12,7 @@ import MapPanel from "./MapPanel";
 import NotesPanel from "./NotesPanel";
 import StrongsModal, { StrongsModalData } from "./StrongsModal";
 import { renderWjText } from "./wj-render";
+import { recordRecentVerse } from "@/hooks/useRecentChapters";
 
 const SCROLL_DELAY_EXTERNAL = 100;  // let React finish painting before scrolling to an externally-highlighted verse
 const SCROLL_DELAY_HASH = 150;      // slightly longer for hash nav — page may still be settling on first mount
@@ -69,6 +70,10 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [flashVerse, setFlashVerse] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedVerse != null) recordRecentVerse(book.id, chapter, selectedVerse);
+  }, [selectedVerse, book.id, chapter]);
 
   // Briefly highlight a verse — used when arriving via search or external link
   function flashAndScroll(verseNum: number, delayMs: number) {

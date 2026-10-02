@@ -40,8 +40,8 @@ export default function AppLayout({ user, backHref, backLabel = "Reading", title
 
   const sidebarVisible = isDesktop || mobileOpen;
 
-  function goToChapter(bookId: string, chapter: number, translation: Translation) {
-    router.push(`/bible/${bookId}/${chapter}?t=${translation}`);
+  function goToChapter(bookId: string, chapter: number, translation: Translation, verse?: number) {
+    router.push(`/bible/${bookId}/${chapter}?t=${translation}${verse ? `#v${verse}` : ""}`);
     setMobileOpen(false);
   }
 

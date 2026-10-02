@@ -9,7 +9,7 @@ interface Props {
   history: RecentChapter[];
   activeBookId?: string;
   activeChapter?: number;
-  onSelect: (bookId: string, chapter: number, translation: Translation) => void;
+  onSelect: (bookId: string, chapter: number, translation: Translation, verse?: number) => void;
 }
 
 export default function HistorySection({ history, activeBookId, activeChapter, onSelect }: Props) {
@@ -34,12 +34,12 @@ export default function HistorySection({ history, activeBookId, activeChapter, o
             return (
               <button
                 key={`${h.bookId}-${h.chapter}`}
-                onClick={() => onSelect(h.bookId, h.chapter, h.translation)}
+                onClick={() => onSelect(h.bookId, h.chapter, h.translation, h.verse)}
                 className={`w-full flex items-center justify-between px-2 py-1.5 text-[12px] rounded-md cursor-pointer border-none ${
                   active ? "bg-gold text-surface font-semibold" : "bg-surface-overlay text-ink-secondary"
                 }`}
               >
-                <span>{h.bookName} {h.chapter}</span>
+                <span>{h.bookName} {h.chapter}{h.verse ? `:${h.verse}` : ""}</span>
                 <span className={`text-[10px] font-bold ${active ? "text-surface" : "text-ink-muted"}`}>{h.translation}</span>
               </button>
             );

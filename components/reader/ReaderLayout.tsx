@@ -53,8 +53,13 @@ export default function ReaderLayout({ book, chapter, translation, user, preferr
 
   const sidebarVisible = isDesktop || mobileOpen;
 
-  function goTo(bookId: string, ch: number, t: Translation = translation) {
-    router.push(`/bible/${bookId}/${ch}?t=${t}`);
+  function goTo(bookId: string, ch: number, t: Translation = translation, verse?: number) {
+    if (verse && bookId === book.id && ch === chapter && t === translation) {
+      // Already on this chapter — a hash push wouldn't remount ChapterView, so highlight directly
+      onHighlightVerse?.(verse);
+    } else {
+      router.push(`/bible/${bookId}/${ch}?t=${t}${verse ? `#v${verse}` : ""}`);
+    }
     if (!isDesktop) setMobileOpen(false);
   }
 
