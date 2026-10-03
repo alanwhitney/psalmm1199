@@ -36,8 +36,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // suppressHydrationWarning: the theme script below sets class/style on <html> before hydration
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Set theme class before first paint to avoid flash */}
         <script

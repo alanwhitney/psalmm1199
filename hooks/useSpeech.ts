@@ -17,8 +17,8 @@ async function waitForVoices(synth: SpeechSynthesis): Promise<void> {
 }
 
 export function useSpeech(verses: Verse[]) {
-  const supported = typeof window !== "undefined" && "speechSynthesis" in window;
-
+  // Detected after mount so server and first client render match (avoids a hydration mismatch)
+  const [supported, setSupported] = useState(false);
   const [state, setState] = useState<SpeechState>("idle");
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
   const [rate, setRate] = useState(1);
@@ -27,7 +27,10 @@ export function useSpeech(verses: Verse[]) {
   const offsetsRef = useRef<{ number: number; start: number }[]>([]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") synthRef.current = window.speechSynthesis;
+    if ("speechSynthesis" in window) {
+      synthRef.current = window.speechSynthesis;
+      setSupported(true);
+    }
     return () => synthRef.current?.cancel();
   }, []);
 
