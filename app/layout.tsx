@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Lora, Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -22,13 +22,16 @@ export const metadata: Metadata = {
   description:
     "A clean, focused Bible reading app. Read KJV and NKJV, keep bookmarks, and attach notes to any chapter.",
   keywords: ["Bible", "KJV", "NKJV", "Bible reader", "scripture"],
-  themeColor: "#0e0e10",
   appleWebApp: {
     capable: true,
     title: "Psalm 119:9",
     statusBarStyle: "black-translucent",
   },
   formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0e0e10",
 };
 
 export default function RootLayout({
