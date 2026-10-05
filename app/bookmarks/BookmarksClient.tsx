@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
 import { nextChapterPosition } from "@/lib/books";
+import { advanceBookmark } from "@/lib/bookmarks";
 import PlanTab from "./PlanTab";
 import StudyTab, { StudyGroup } from "./StudyTab";
 
@@ -98,11 +99,9 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
     if (r1.error || r2.error) setBookmarks(prev);
   }
 
-  async function advanceBookmark(id: string, bookId: string, chapter: number) {
-    const next = nextChapterPosition(bookId, chapter);
-    if (!next) return;
-    await supabase.from("bookmarks").update({ book_id: next.bookId, book_name: next.bookName, chapter: next.chapter }).eq("id", id);
-    setBookmarks(prev => prev.map(b => b.id === id ? { ...b, book_id: next.bookId, book_name: next.bookName, chapter: next.chapter, updated_at: new Date().toISOString() } : b));
+  async function advance(bookmark: BookmarkType) {
+    const updated = await advanceBookmark(bookmark);
+    if (updated) setBookmarks(prev => prev.map(b => b.id === updated.id ? updated : b));
   }
 
   const tabs: { key: Tab; label: string; shortLabel?: string; count?: number }[] = [
@@ -163,7 +162,7 @@ export default function BookmarksClient({ bookmarks: initial, notes, userId, use
                   key={bm.id}
                   bookmark={bm}
                   onDelete={() => deleteBookmark(bm.id)}
-                  onAdvance={() => advanceBookmark(bm.id, bm.book_id, bm.chapter)}
+                  onAdvance={() => advance(bm)}
                   onMoveUp={i > 0 ? () => moveBookmark(i, -1) : undefined}
                   onMoveDown={i < bookmarks.length - 1 ? () => moveBookmark(i, 1) : undefined}
                 />

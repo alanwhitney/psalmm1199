@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map, Columns2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, ChevronsRight, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map, Columns2 } from "lucide-react";
 import Link from "next/link";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
@@ -13,6 +13,8 @@ import NotesPanel from "./NotesPanel";
 import StrongsModal, { StrongsModalData } from "./StrongsModal";
 import { renderWjText } from "./wj-render";
 import { recordRecentVerse } from "@/hooks/useRecentChapters";
+import { nextChapterPosition } from "@/lib/books";
+import { advanceBookmark } from "@/lib/bookmarks";
 
 const SCROLL_DELAY_EXTERNAL = 100;  // let React finish painting before scrolling to an externally-highlighted verse
 const SCROLL_DELAY_HASH = 150;      // slightly longer for hash nav — page may still be settling on first mount
@@ -335,6 +337,17 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   const [bookmarkLabel, setBookmarkLabel] = useState(initialBookmark?.label ?? "");
   const [labelEditing, setLabelEditing] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
+  const nextPosition = nextChapterPosition(book.id, chapter);
+
+  // Move the bookmark to the next chapter and go there
+  async function advanceAndContinue() {
+    if (!bookmark || advancing) return;
+    setAdvancing(true);
+    const updated = await advanceBookmark(bookmark);
+    if (updated) router.push(`/bible/${updated.book_id}/${updated.chapter}?t=${updated.translation}`);
+    else setAdvancing(false);
+  }
 
   async function toggleBookmark() {
     if (!user) { router.push("/auth/login"); return; }
@@ -476,6 +489,16 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                 {bookmark ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
                 {bookmark ? "Bookmarked" : "Bookmark"}
               </button>
+              {bookmark && nextPosition && (
+                <button
+                  onClick={advanceAndContinue}
+                  disabled={advancing}
+                  title={`Move bookmark to ${nextPosition.bookName} ${nextPosition.chapter} and go there`}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-gold-muted bg-gold/[9%] text-gold disabled:opacity-50"
+                >
+                  <ChevronsRight size={13} /> {nextPosition.label}
+                </button>
+              )}
               {bookmark && labelEditing && (
                 <div className="flex items-center gap-2">
                   <input autoFocus value={bookmarkLabel} onChange={(e) => setBookmarkLabel(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveLabel()}
@@ -771,8 +794,21 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
               })}
             </div>
 
+            {/* Finished the chapter — advance bookmark */}
+            {bookmark && nextPosition && (
+              <div className="flex justify-center mt-16">
+                <button
+                  onClick={advanceAndContinue}
+                  disabled={advancing}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer border border-gold-muted bg-gold/[9%] text-gold disabled:opacity-50"
+                >
+                  <BookmarkCheck size={14} /> Advance bookmark to {nextPosition.bookName} {nextPosition.chapter} <ChevronsRight size={14} />
+                </button>
+              </div>
+            )}
+
             {/* Prev / Next navigation */}
-            <div className="flex justify-between items-center mt-16 pt-6 border-t border-t-line-subtle">
+            <div className={`flex justify-between items-center ${bookmark && nextPosition ? "mt-6" : "mt-16"} pt-6 border-t border-t-line-subtle`}>
               {prevChapter ? (
                 <a href={`/bible/${book.id}/${prevChapter}?t=${translation}`} className="flex items-center gap-1.5 text-[13px] text-ink-secondary no-underline">
                   <ChevronLeft size={16} /> Chapter {prevChapter}
