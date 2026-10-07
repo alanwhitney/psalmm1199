@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, ChevronsRight, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map, Columns2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, ChevronsRight, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map, Columns2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
@@ -291,11 +291,20 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   function getVerseText(num: number) {
     const verse = chapterData?.verses.find(v => v.number === num);
-    return verse ? stripWj(verse.text.replace(/\n/g, " ").trim()) : "";
+    return verse ? stripWj(verse.text.replace(/\n/g, " ").replace(/¶\s*/g, "").trim()) : ""; // ¶ = KJV paragraph mark
   }
 
   function formatShareText(num: number) {
     return `"${getVerseText(num)}" — ${book.name} ${chapter}:${num} (${translation})`;
+  }
+
+  // Opens claude.ai in a new chat with the verse and question prefilled
+  function askClaudeUrl(num: number) {
+    const prompt =
+      `Help me understand ${book.name} ${chapter}:${num} (${translation}):\n\n"${getVerseText(num)}"\n\n` +
+      `Explain its context within the chapter and book, what it means, and how Christians have understood it. ` +
+      `Where interpretations differ, present the main views fairly, and point me to related passages.`;
+    return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
   }
 
   async function copyVerse(num: number) {
@@ -654,6 +663,14 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                             <StickyNote size={12} />
                             {hasNote ? "Edit note" : "Add note"}
                           </button>
+                          <a
+                            href={askClaudeUrl(verse.number)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-[5px] px-[10px] py-1 bg-surface-overlay border border-line-subtle rounded-md text-[11px] font-semibold text-ink-secondary no-underline"
+                          >
+                            <Sparkles size={12} /> Ask Claude
+                          </a>
 
                           <button onClick={() => setSelectedVerse(null)} className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
                             <XIcon size={13} />
