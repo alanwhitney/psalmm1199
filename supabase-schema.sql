@@ -1,11 +1,41 @@
 -- psalm1199 database schema
--- Run this in your Supabase SQL Editor
+--
+-- Regenerated from the live Supabase project on 2026-10-12, so this matches
+-- production. Run it in the Supabase SQL Editor to build a fresh database.
+-- Make later changes as migrations in supabase/migrations/ and keep this file
+-- in sync with them.
 
--- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
 -- ─────────────────────────────────────────────
--- Bookmarks
+-- Shared trigger functions
+-- ─────────────────────────────────────────────
+-- Two equivalent updated_at triggers exist for historical reasons:
+-- bookmarks uses set_updated_at(), notes and prayers use update_updated_at_column().
+create or replace function set_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create or replace function update_updated_at_column()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- ─────────────────────────────────────────────
+-- Bookmarks (per translation)
 -- ─────────────────────────────────────────────
 create table if not exists bookmarks (
   id          uuid default uuid_generate_v4() primary key,
@@ -17,30 +47,29 @@ create table if not exists bookmarks (
   translation text not null default 'KJV',
   label       text,                   -- user-supplied name, e.g. "Morning reading"
   created_at  timestamptz default now() not null,
-  sorted_at   timestamptz default now() not null  -- bumped on user edits, but NOT on chapter advance
+  sorted_at   timestamptz default now() not null,  -- manual order on the Bookmarks page (desc); not bumped on advance or label edit
+  updated_at  timestamptz default now()            -- set by trigger on every update
 );
 
--- Row Level Security
+create index if not exists bookmarks_user_id_idx on bookmarks (user_id);
+
 alter table bookmarks enable row level security;
 
 create policy "Users can view their own bookmarks"
-  on bookmarks for select
-  using (auth.uid() = user_id);
-
+  on bookmarks for select using ((select auth.uid()) = user_id);
 create policy "Users can insert their own bookmarks"
-  on bookmarks for insert
-  with check (auth.uid() = user_id);
-
+  on bookmarks for insert with check ((select auth.uid()) = user_id);
 create policy "Users can update their own bookmarks"
-  on bookmarks for update
-  using (auth.uid() = user_id);
-
+  on bookmarks for update using ((select auth.uid()) = user_id);
 create policy "Users can delete their own bookmarks"
-  on bookmarks for delete
-  using (auth.uid() = user_id);
+  on bookmarks for delete using ((select auth.uid()) = user_id);
+
+create trigger bookmarks_updated_at
+  before update on bookmarks
+  for each row execute function set_updated_at();
 
 -- ─────────────────────────────────────────────
--- Notes
+-- Notes (translation-agnostic; verse = 0 is a chapter-level note)
 -- ─────────────────────────────────────────────
 create table if not exists notes (
   id          uuid default uuid_generate_v4() primary key,
@@ -53,45 +82,27 @@ create table if not exists notes (
   created_at  timestamptz default now() not null,
   updated_at  timestamptz default now() not null,
 
-  -- One note per user per book/chapter/verse (translation-agnostic)
-  unique(user_id, book_id, chapter, verse)
+  -- One note per user per book/chapter/verse
+  constraint notes_unique_verse unique (user_id, book_id, chapter, verse)
 );
 
--- Row Level Security
 alter table notes enable row level security;
 
 create policy "Users can view their own notes"
-  on notes for select
-  using (auth.uid() = user_id);
-
+  on notes for select using ((select auth.uid()) = user_id);
 create policy "Users can insert their own notes"
-  on notes for insert
-  with check (auth.uid() = user_id);
-
+  on notes for insert with check ((select auth.uid()) = user_id);
 create policy "Users can update their own notes"
-  on notes for update
-  using (auth.uid() = user_id);
-
+  on notes for update using ((select auth.uid()) = user_id);
 create policy "Users can delete their own notes"
-  on notes for delete
-  using (auth.uid() = user_id);
-
--- Auto-update updated_at on notes
-create or replace function update_updated_at_column()
-returns trigger as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$ language plpgsql;
+  on notes for delete using ((select auth.uid()) = user_id);
 
 create trigger notes_updated_at
   before update on notes
-  for each row
-  execute function update_updated_at_column();
+  for each row execute function update_updated_at_column();
 
 -- ─────────────────────────────────────────────
--- Highlights
+-- Highlights (per translation)
 -- ─────────────────────────────────────────────
 create table if not exists highlights (
   id          uuid default uuid_generate_v4() primary key,
@@ -100,29 +111,22 @@ create table if not exists highlights (
   chapter     integer not null,
   verse       integer not null,
   translation text not null default 'KJV',
-  color       text not null default 'yellow',
+  color       text not null default 'yellow',   -- see HIGHLIGHT_COLORS in ChapterView.tsx
   created_at  timestamptz default now() not null,
 
-  unique(user_id, book_id, chapter, verse, translation)
+  unique (user_id, book_id, chapter, verse, translation)
 );
 
 alter table highlights enable row level security;
 
 create policy "Users can view their own highlights"
-  on highlights for select
-  using (auth.uid() = user_id);
-
+  on highlights for select using ((select auth.uid()) = user_id);
 create policy "Users can insert their own highlights"
-  on highlights for insert
-  with check (auth.uid() = user_id);
-
+  on highlights for insert with check ((select auth.uid()) = user_id);
 create policy "Users can update their own highlights"
-  on highlights for update
-  using (auth.uid() = user_id);
-
+  on highlights for update using ((select auth.uid()) = user_id);
 create policy "Users can delete their own highlights"
-  on highlights for delete
-  using (auth.uid() = user_id);
+  on highlights for delete using ((select auth.uid()) = user_id);
 
 -- ─────────────────────────────────────────────
 -- Prayer Journal
@@ -138,28 +142,22 @@ create table if not exists prayers (
   updated_at  timestamptz default now() not null
 );
 
+create index if not exists prayers_user_id_idx on prayers (user_id);
+
 alter table prayers enable row level security;
 
 create policy "Users can view their own prayers"
-  on prayers for select
-  using (auth.uid() = user_id);
-
+  on prayers for select using ((select auth.uid()) = user_id);
 create policy "Users can insert their own prayers"
-  on prayers for insert
-  with check (auth.uid() = user_id);
-
+  on prayers for insert with check ((select auth.uid()) = user_id);
 create policy "Users can update their own prayers"
-  on prayers for update
-  using (auth.uid() = user_id);
-
+  on prayers for update using ((select auth.uid()) = user_id);
 create policy "Users can delete their own prayers"
-  on prayers for delete
-  using (auth.uid() = user_id);
+  on prayers for delete using ((select auth.uid()) = user_id);
 
 create trigger prayers_updated_at
   before update on prayers
-  for each row
-  execute function update_updated_at_column();
+  for each row execute function update_updated_at_column();
 
 -- ─────────────────────────────────────────────
 -- Reading Plans
@@ -168,168 +166,131 @@ create table if not exists user_reading_plans (
   id          uuid default uuid_generate_v4() primary key,
   user_id     uuid references auth.users(id) on delete cascade not null,
   plan_id     text not null,          -- static plan id, see lib/reading-plans.ts
-  started_at  timestamptz default now() not null,
+  started_at  date not null default current_date,
   translation text not null default 'KJV',
-  active      boolean not null default false,
+  active      boolean not null default true,
+  created_at  timestamptz default now() not null,
 
-  unique(user_id, plan_id)
+  unique (user_id, plan_id)
 );
 
 alter table user_reading_plans enable row level security;
 
-create policy "Users can view their own reading plans"
-  on user_reading_plans for select
-  using (auth.uid() = user_id);
-
-create policy "Users can insert their own reading plans"
-  on user_reading_plans for insert
-  with check (auth.uid() = user_id);
-
-create policy "Users can update their own reading plans"
-  on user_reading_plans for update
-  using (auth.uid() = user_id);
-
-create policy "Users can delete their own reading plans"
-  on user_reading_plans for delete
-  using (auth.uid() = user_id);
+create policy "Users manage their own plans"
+  on user_reading_plans for all
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 create table if not exists plan_completions (
+  id           uuid default uuid_generate_v4() primary key,
   user_id      uuid references auth.users(id) on delete cascade not null,
   plan_id      text not null,
   day          integer not null,
   completed_at timestamptz default now() not null,
 
-  primary key (user_id, plan_id, day)
+  unique (user_id, plan_id, day)
 );
 
 alter table plan_completions enable row level security;
 
-create policy "Users can view their own plan completions"
-  on plan_completions for select
-  using (auth.uid() = user_id);
-
-create policy "Users can insert their own plan completions"
-  on plan_completions for insert
-  with check (auth.uid() = user_id);
-
-create policy "Users can delete their own plan completions"
-  on plan_completions for delete
-  using (auth.uid() = user_id);
+create policy "Users manage their own completions"
+  on plan_completions for all
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 -- ─────────────────────────────────────────────
 -- Study Groups
 -- ─────────────────────────────────────────────
 create table if not exists study_groups (
-  id          uuid default uuid_generate_v4() primary key,
+  id          uuid default gen_random_uuid() primary key,
   owner_id    uuid references auth.users(id) on delete cascade not null,
   name        text not null,
   book_id     text not null,
   book_name   text not null,
   chapter     integer not null,
-  translation text not null default 'KJV',
+  translation text not null default 'NKJV',
   invite_code text not null unique,
   created_at  timestamptz default now() not null
 );
 
-alter table study_groups enable row level security;
+create index if not exists study_groups_owner_id_idx on study_groups (owner_id);
 
 create table if not exists study_group_members (
-  id        uuid default uuid_generate_v4() primary key,
   group_id  uuid references study_groups(id) on delete cascade not null,
   user_id   uuid references auth.users(id) on delete cascade not null,
   joined_at timestamptz default now() not null,
 
-  unique(group_id, user_id)
+  primary key (group_id, user_id)
 );
 
+create index if not exists study_group_members_user_id_idx on study_group_members (user_id);
+
+alter table study_groups enable row level security;
 alter table study_group_members enable row level security;
 
--- SECURITY DEFINER helper: a plain "exists (select ... from study_group_members
--- where user_id = auth.uid())" policy on study_group_members would reference its
--- own table and trip Postgres's "infinite recursion detected in policy" check.
--- Routing the membership check through a definer function sidesteps that.
-create or replace function is_study_group_member(p_group_id uuid)
-returns boolean
+-- SECURITY DEFINER helper: a policy on study_group_members that selected from
+-- study_group_members directly would trip Postgres's "infinite recursion
+-- detected in policy" check. Reading the caller's group ids through a definer
+-- function sidesteps that.
+create or replace function get_my_group_ids()
+returns setof uuid
 language sql
+stable
 security definer
 set search_path = public
-stable
 as $$
-  select exists (
-    select 1 from study_group_members
-    where group_id = p_group_id and user_id = auth.uid()
-  );
+  select group_id from study_group_members where user_id = auth.uid()
 $$;
 
-create policy "Members and owners can view their study groups"
-  on study_groups for select
-  using (
-    auth.uid() = owner_id
-    or is_study_group_member(id)
+create policy "members can read their groups"
+  on study_groups for select using (
+    (select auth.uid()) = owner_id
+    or exists (
+      select 1 from study_group_members m
+      where m.group_id = study_groups.id and m.user_id = (select auth.uid())
+    )
   );
+create policy "authenticated users can create groups"
+  on study_groups for insert with check ((select auth.uid()) = owner_id);
+create policy "owner can update group"
+  on study_groups for update using ((select auth.uid()) = owner_id);
+create policy "owner can delete group"
+  on study_groups for delete using ((select auth.uid()) = owner_id);
 
-create policy "Users can create study groups they own"
-  on study_groups for insert
-  with check (auth.uid() = owner_id);
-
-create policy "Owners can update their study groups"
-  on study_groups for update
-  using (auth.uid() = owner_id);
-
-create policy "Owners can delete their study groups"
-  on study_groups for delete
-  using (auth.uid() = owner_id);
-
-create policy "Members can view fellow members of their groups"
-  on study_group_members for select
-  using (
-    is_study_group_member(group_id)
-    or exists (select 1 from study_groups g where g.id = study_group_members.group_id and g.owner_id = auth.uid())
-  );
-
-create policy "Users can add themselves as a member"
-  on study_group_members for insert
-  with check (auth.uid() = user_id);
-
-create policy "Users can remove themselves from a group"
-  on study_group_members for delete
-  using (auth.uid() = user_id);
+create policy "members can see their group's members"
+  on study_group_members for select using (group_id in (select get_my_group_ids()));
+create policy "authenticated users can join"
+  on study_group_members for insert with check ((select auth.uid()) = user_id);
+create policy "members can leave"
+  on study_group_members for delete using ((select auth.uid()) = user_id);
 
 -- Look up a group by invite code and join it. SECURITY DEFINER because the
 -- joiner isn't a member yet, so the select policy above wouldn't otherwise let
 -- them see the group row to join it. Exception message substrings ("invalid
--- invite", "owner", "not authenticated") are matched by friendlyJoinError() in
--- app/bookmarks/StudyTab.tsx — keep them in sync if you edit this.
+-- invite", "owner", "not authenticated") are matched case-insensitively by
+-- friendlyJoinError() in app/bookmarks/StudyTab.tsx; keep them in sync.
 create or replace function join_study_group_by_code(p_code text)
-returns study_groups
+returns json
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_group   study_groups;
-  v_user_id uuid := auth.uid();
+  v_group study_groups%rowtype;
+  v_uid   uuid := auth.uid();
 begin
-  if v_user_id is null then
-    raise exception 'not authenticated';
-  end if;
-
-  select * into v_group from study_groups where invite_code = upper(p_code);
-
-  if not found then
-    raise exception 'invalid invite code';
-  end if;
-
-  if v_group.owner_id = v_user_id then
-    raise exception 'you are the owner of this group';
-  end if;
-
-  insert into study_group_members (group_id, user_id)
-  values (v_group.id, v_user_id)
-  on conflict (group_id, user_id) do nothing;
-
-  return v_group;
+  if v_uid is null then raise exception 'Not authenticated'; end if;
+  select * into v_group from study_groups where invite_code = upper(trim(p_code));
+  if not found then raise exception 'Invalid invite code'; end if;
+  if v_group.owner_id = v_uid then raise exception 'You are the owner of this group'; end if;
+  insert into study_group_members (group_id, user_id) values (v_group.id, v_uid)
+    on conflict (group_id, user_id) do nothing;
+  return row_to_json(v_group);
 end;
 $$;
 
+-- Definer functions are callable over the API; restrict them to signed-in users.
+revoke execute on function get_my_group_ids() from public, anon;
+revoke execute on function join_study_group_by_code(text) from public, anon;
+grant execute on function get_my_group_ids() to authenticated;
 grant execute on function join_study_group_by_code(text) to authenticated;
