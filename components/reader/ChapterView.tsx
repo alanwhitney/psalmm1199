@@ -722,6 +722,13 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                                   ))}
                                 </div>
                               )}
+                              {/* Data is CC-BY — attribution required (see scripts/build-crossrefs.mjs) */}
+                              <p className="text-[9px] text-ink-muted mt-1.5 mb-0">
+                                Cross-references from{" "}
+                                <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer" className="text-ink-muted underline">
+                                  OpenBible.info
+                                </a>
+                              </p>
                             </div>
                           )}
                         </div>

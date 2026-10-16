@@ -23,11 +23,15 @@ export async function GET(req: NextRequest) {
   const key = `${bookId}.${chapter}.${verse}`;
   const raw = getData()[key] ?? [];
 
+  // Targets are "BOOK.ch.v", "BOOK.ch.v-v2" (same-chapter range) or "BOOK.ch.v-ch2.v2"
+  // (cross-chapter range) — see scripts/build-crossrefs.mjs
   const refs = raw.flatMap(ref => {
-    const [rBook, rChapter, rVerse] = ref.split(".");
+    const [start, end] = ref.split("-");
+    const [rBook, rChapter, rVerse] = start.split(".");
     const book = BOOK_BY_ID[rBook];
     if (!book) return [];
-    return [{ bookId: rBook, chapter: parseInt(rChapter, 10), verse: parseInt(rVerse, 10), label: `${book.abbreviation} ${rChapter}:${rVerse}`, href: `/bible/${rBook}/${rChapter}` }];
+    const rangeEnd = end ? `–${end.replace(".", ":")}` : "";
+    return [{ bookId: rBook, chapter: parseInt(rChapter, 10), verse: parseInt(rVerse, 10), label: `${book.abbreviation} ${rChapter}:${rVerse}${rangeEnd}`, href: `/bible/${rBook}/${rChapter}` }];
   });
 
   return NextResponse.json({ refs });
