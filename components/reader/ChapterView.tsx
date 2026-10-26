@@ -887,6 +887,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
           onClose={() => setStrongsModal(null)}
           onRetry={() => fetchConcordance(strongsModal.strongs)}
           renderDerivation={renderDerivationForModal}
+          onOpenStrongs={openStrongsById}
         />
       )}
     </div>
