@@ -59,9 +59,11 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Ancient world">
           <TileLayer
-            url="/api/map-tile/{z}/{x}/{y}"
-            attribution='Tiles by <a href="https://cawm.lib.uiowa.edu" target="_blank" rel="noopener">CAWM</a> / University of Iowa'
-            maxNativeZoom={8}
+            // ?src busts browser/edge caches still holding old CAWM tiles
+            url="/api/map-tile/{z}/{x}/{y}?src=dare"
+            attribution='Tiles by <a href="https://imperium.ahlfeldt.se" target="_blank" rel="noopener">DARE</a> / Johan Åhlfeldt, University of Gothenburg'
+            minNativeZoom={3}
+            maxNativeZoom={11}
             maxZoom={12}
           />
         </LayersControl.BaseLayer>

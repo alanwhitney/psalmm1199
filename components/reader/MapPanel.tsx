@@ -73,12 +73,12 @@ export default function MapPanel({
           </a>{" "}
           · Tiles:{" "}
           <a
-            href="https://cawm.lib.uiowa.edu"
+            href="https://imperium.ahlfeldt.se"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gold-muted no-underline"
           >
-            CAWM
+            DARE
           </a>{" "}
           /{" "}
           <a

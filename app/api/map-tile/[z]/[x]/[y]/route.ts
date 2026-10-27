@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Proxies map tiles from the Consortium of Ancient World Mappers (CAWM) at
-// http://cawm.lib.uiowa.edu/tiles. Direct client fetches fail because their
-// HTTPS cert chain is broken and mixed-content blocks the HTTP fallback.
+// Proxies ancient-world map tiles from the Digital Atlas of the Roman Empire
+// (DARE, University of Gothenburg). Previously proxied CAWM
+// (http://cawm.lib.uiowa.edu/tiles), which stopped accepting connections in
+// October 2026. Proxying keeps the upstream swappable without client changes.
 // Aggressively cached at the edge — tiles are effectively immutable.
 
-const UPSTREAM = "http://cawm.lib.uiowa.edu/tiles";
+const UPSTREAM = "https://dh.gu.se/tiles/imperium";
 const UPSTREAM_TIMEOUT_MS = 8000;
 
 export async function GET(
