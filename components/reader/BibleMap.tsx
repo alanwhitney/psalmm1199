@@ -63,7 +63,8 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
             url="/api/map-tile/{z}/{x}/{y}?src=dare"
             attribution='Tiles by <a href="https://imperium.ahlfeldt.se" target="_blank" rel="noopener">DARE</a> / Johan Åhlfeldt, University of Gothenburg'
             minNativeZoom={3}
-            maxNativeZoom={11}
+            // DARE's z11 tiles switch to a grey hillshade style; upscale z10 instead
+            maxNativeZoom={10}
             maxZoom={12}
           />
         </LayersControl.BaseLayer>
