@@ -45,6 +45,7 @@ export default async function BookmarksPage() {
         userPlans={userPlans ?? []}
         completions={completions ?? []}
         studyGroups={studyGroups}
+        renderedAt={Date.now()}
       />
     </AppLayout>
   );

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bookmark, StickyNote, Trash2, ChevronRight, ChevronUp, ChevronDown, CalendarDays, Search, X, ChevronsRight, Download } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark as BookmarkType, Note } from "@/types";
 import { nextChapterPosition } from "@/lib/books";
@@ -27,18 +27,53 @@ interface Props {
   userPlans: { id: string; plan_id: string; started_at: string; translation: string; active: boolean }[];
   completions: { plan_id: string; day: number }[];
   studyGroups: StudyGroup[];
+  renderedAt: number;
 }
 
 type Tab = "bookmarks" | "notes" | "plan" | "study";
 
+// Newest server render this tab has shown. A render that isn't newer is the router
+// cache replaying an old page (back/forward), so it needs a refresh.
+let latestRenderedAt = 0;
+const RESUME_REFRESH_MS = 30_000; // hidden at least this long → refetch when shown again
+
 const NOTE_PAGE_SIZES = [25, 50, 75, 100] as const;
 type NotePageSize = typeof NOTE_PAGE_SIZES[number];
 
-export default function BookmarksClient({ bookmarks: initial, notes, userId, userPlans, completions, studyGroups }: Props) {
+export default function BookmarksClient({ bookmarks: initial, notes, userId, userPlans, completions, studyGroups, renderedAt }: Props) {
   const supabase = createClient();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) ?? "bookmarks");
+  const tabParam = searchParams.get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(tabParam ?? "bookmarks");
   const [bookmarks, setBookmarks] = useState(initial);
+
+  // Props change without a remount on router.refresh() or ?tab= links from the menu
+  useEffect(() => { setBookmarks(initial); }, [initial]);
+  useEffect(() => { if (tabParam) setTab(tabParam); }, [tabParam]);
+
+  useEffect(() => {
+    if (renderedAt <= latestRenderedAt) router.refresh();
+    else latestRenderedAt = renderedAt;
+  }, [renderedAt, router]);
+
+  // Phones restore the page as it was left (bfcache / app switch) — refetch on return
+  useEffect(() => {
+    let hiddenAt = 0;
+    function onVisibility() {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > RESUME_REFRESH_MS) router.refresh();
+    }
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted) router.refresh();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [router]);
   const [noteSearch, setNoteSearch] = useState("");
   const [notePage, setNotePage] = useState(1);
   const [notePageSize, setNotePageSize] = useState<NotePageSize>(25);
