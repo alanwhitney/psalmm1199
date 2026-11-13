@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, LayersControl, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, LayersControl, LayerGroup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "@/components/ThemeProvider";
 import { MapPlace } from "@/lib/chapter-places";
 import { periodMaps } from "@/lib/data/period-maps";
 import PeriodOverlayLayer from "./PeriodOverlayLayer";
+import AncientLabelsLayer from "./AncientLabelsLayer";
 
 function makeIcon(dark: boolean) {
   const fill = dark ? "#c9a84c" : "#b07d20";
@@ -58,6 +59,18 @@ export default function BibleMap({ places }: { places: MapPlace[] }) {
     >
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Ancient world">
+          <LayerGroup>
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}"
+              attribution='Tiles &copy; <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a> &mdash; Source: US National Park Service'
+              // Esri serves blank placeholders past z8; upscale z8 instead
+              maxNativeZoom={8}
+              maxZoom={12}
+            />
+            <AncientLabelsLayer />
+          </LayerGroup>
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Roman roads">
           <TileLayer
             // ?src busts browser/edge caches still holding old CAWM tiles
             url="/api/map-tile/{z}/{x}/{y}?src=dare"

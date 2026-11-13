@@ -41,6 +41,28 @@
   filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(90%);
 }
 
+/* Atlas-style land and sea names on the "Ancient world" map */
+.ancient-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-family: var(--font-reading), Georgia, serif;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #6b4f33;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.9), 0 0 6px rgba(255, 255, 255, 0.7);
+}
+.ancient-label-water {
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0.08em;
+  color: #2f5f86;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.6);
+}
+.ancient-label-lg { font-size: 14px; }
+.ancient-label-md { font-size: 11.5px; }
+.ancient-label-sm { font-size: 10px; letter-spacing: 0.16em; }
+
 /* Base */
 html, body {
   background-color: var(--surface);
