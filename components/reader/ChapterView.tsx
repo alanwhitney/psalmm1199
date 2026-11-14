@@ -152,6 +152,36 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
     }
   }
 
+  // Verse compare (the same verse in every other translation)
+  const [verseCompareOpen, setVerseCompareOpen] = useState<number | null>(null);
+  const [verseCompareCache, setVerseCompareCache] = useState<Record<number, { translation: Translation; text: string | null }[]>>({});
+  const [verseCompareLoading, setVerseCompareLoading] = useState(false);
+  const [verseCompareError, setVerseCompareError] = useState<Record<number, string>>({});
+
+  // Cached results leave out the translation being read, so drop them if it changes
+  useEffect(() => { setVerseCompareCache({}); setVerseCompareOpen(null); }, [translation]);
+
+  function toggleVerseCompare(verseNum: number) {
+    if (verseCompareOpen === verseNum) { setVerseCompareOpen(null); return; }
+    setVerseCompareOpen(verseNum);
+    if (!verseCompareCache[verseNum]) fetchVerseCompare(verseNum);
+  }
+
+  async function fetchVerseCompare(verseNum: number) {
+    setVerseCompareError(prev => { const next = { ...prev }; delete next[verseNum]; return next; });
+    setVerseCompareLoading(true);
+    try {
+      const res = await fetch(`/api/verse-compare?bookId=${book.id}&chapter=${chapter}&verse=${verseNum}&exclude=${translation}`);
+      if (!res.ok) throw new Error(`Server error (${res.status})`);
+      const data = await res.json();
+      setVerseCompareCache(prev => ({ ...prev, [verseNum]: data.verses ?? [] }));
+    } catch (err) {
+      setVerseCompareError(prev => ({ ...prev, [verseNum]: err instanceof Error ? err.message : "Couldn't load translations" }));
+    } finally {
+      setVerseCompareLoading(false);
+    }
+  }
+
   // Strong's
   const [strongsOpen, setStrongsOpen] = useState<number | null>(null);
   const [strongsCache, setStrongsCache] = useState<Record<number, { word: string; strongs: string; lemma: string; def: string; xlit?: string; derivation?: string }[]>>({});
@@ -283,7 +313,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
 
   function selectVerse(num: number) {
     setSelectedVerse(prev => {
-      if (prev !== num) { setXrefOpen(null); setStrongsOpen(null); }
+      if (prev !== num) { setXrefOpen(null); setStrongsOpen(null); setVerseCompareOpen(null); }
       return prev === num ? null : num;
     });
     setCopied(false);
@@ -671,11 +701,55 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                           >
                             <Sparkles size={12} /> Ask Claude
                           </a>
+                          <button
+                            onClick={() => toggleVerseCompare(verse.number)}
+                            aria-expanded={verseCompareOpen === verse.number}
+                            className={`flex items-center gap-[5px] px-[10px] py-1 border rounded-md text-[11px] font-semibold cursor-pointer ${verseCompareOpen === verse.number ? "bg-gold/[8%] border-gold-muted text-gold" : "bg-surface-overlay border-line-subtle text-ink-secondary"}`}
+                          >
+                            <Columns2 size={12} /> Compare
+                          </button>
 
                           <button onClick={() => setSelectedVerse(null)} className="ml-auto bg-transparent border-none cursor-pointer text-ink-muted p-0.5">
                             <XIcon size={13} />
                           </button>
                         </div>
+
+                        {/* Verse compare — this verse in the other translations */}
+                        {verseCompareOpen === verse.number && (
+                          <div className="mt-1.5 pt-1.5 border-t border-line-subtle">
+                            {verseCompareLoading && !verseCompareCache[verse.number] && !verseCompareError[verse.number] ? (
+                              <p className="text-[10px] text-ink-muted m-0">Loading…</p>
+                            ) : verseCompareError[verse.number] ? (
+                              <div className="flex items-center gap-2">
+                                <p className="text-[10px] text-red-400 m-0">Couldn&apos;t load translations.</p>
+                                <button onClick={() => fetchVerseCompare(verse.number)} className="text-[10px] text-gold-muted bg-transparent border-none cursor-pointer p-0 underline font-semibold">
+                                  Retry
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-1.5">
+                                {(verseCompareCache[verse.number] ?? []).map(({ translation: t, text }) => (
+                                  <div key={t} className="flex gap-2 items-baseline">
+                                    <a
+                                      href={`/bible/${book.id}/${chapter}?t=${t}#v${verse.number}`}
+                                      title={`Read ${book.name} ${chapter} in ${t}`}
+                                      className="shrink-0 w-10 text-[10px] font-bold text-gold-muted tracking-wider no-underline"
+                                    >
+                                      {t}
+                                    </a>
+                                    {/* Strip WJ marks for non-red-letter translations: the page's own
+                                        .red-letter class would otherwise colour them too */}
+                                    <p className={`m-0 font-reading text-[14px] leading-snug text-ink-primary${t === "KJV" || t === "NIV" ? " red-letter" : ""}`}>
+                                      {text
+                                        ? (t === "KJV" || t === "NIV" ? renderWjText : stripWj)(text.replace(/\n/g, " ").replace(/¶\s*/g, "").trim())
+                                        : <span className="text-ink-muted italic text-[12px]">Not available</span>}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Highlight row */}
                         <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-line-subtle">
