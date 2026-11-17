@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, ChevronsRight, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map, Columns2, Sparkles } from "lucide-react";
+import { Bookmark, BookmarkCheck, StickyNote, ChevronRight, ChevronLeft, ChevronsRight, AlertCircle, Share2, Copy, Check, X as XIcon, Volume2, Play, Pause, Square, Printer, Map, Columns2, Sparkles, BookOpenText } from "lucide-react";
 import Link from "next/link";
 import { useSpeech } from "@/hooks/useSpeech";
 import { useTheme } from "@/components/ThemeProvider";
@@ -10,6 +10,7 @@ import { stripWj } from "@/lib/bible-api";
 import { MapPlace } from "@/lib/chapter-places";
 import MapPanel from "./MapPanel";
 import NotesPanel from "./NotesPanel";
+import StudyPanel from "./StudyPanel";
 import StrongsModal, { StrongsModalData } from "./StrongsModal";
 import { renderWjText } from "./wj-render";
 import { recordRecentVerse } from "@/hooks/useRecentChapters";
@@ -58,10 +59,12 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
   const [bookmark, setBookmark] = useState<BookmarkType | null>(initialBookmark);
   const [noteOpen, setNoteOpen] = useState(openNote ?? false);
   const [mapOpen, setMapOpen] = useState(false);
+  const [studyOpen, setStudyOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
-  function openNotes() { setMapOpen(false); setNoteOpen(true); }
-  function openMap() { setNoteOpen(false); setMapOpen(true); }
+  function openNotes() { setMapOpen(false); setStudyOpen(false); setNoteOpen(true); }
+  function openMap() { setNoteOpen(false); setStudyOpen(false); setMapOpen(true); }
+  function openStudy() { setNoteOpen(false); setMapOpen(false); setStudyOpen(true); }
 
   useEffect(() => {
     onNoteOpenChange?.(noteOpen);
@@ -448,7 +451,7 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       const existing = notes.find(n => n.verse === verseNum);
       setNoteContents(prev => ({ ...prev, [verseNum]: existing?.content ?? "" }));
     }
-    setNoteOpen(true);
+    openNotes();
     setExpandedVerse(verseNum);
   }
 
@@ -569,6 +572,15 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
                   Map
                 </button>
               )}
+
+              {/* Study */}
+              <button
+                onClick={() => studyOpen ? setStudyOpen(false) : openStudy()}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border ${studyOpen ? "border-line bg-surface-overlay text-ink-primary" : "border-line-subtle bg-surface-raised text-ink-secondary"}`}
+              >
+                <BookOpenText size={13} />
+                Study
+              </button>
 
               {/* Listen */}
               {speech.supported && speech.state === "idle" && (
@@ -928,6 +940,17 @@ export default function ChapterView({ book, chapter, translation, chapterData, u
       {/* Map panel */}
       {mapOpen && mapPlaces.length > 0 && (
         <MapPanel places={mapPlaces} onClose={() => setMapOpen(false)} />
+      )}
+
+      {/* Study panel */}
+      {studyOpen && (
+        <StudyPanel
+          book={book}
+          chapter={chapter}
+          selectedVerse={selectedVerse}
+          onVerseClick={(v) => flashAndScroll(v, 0)}
+          onClose={() => setStudyOpen(false)}
+        />
       )}
 
       {/* Notes panel */}
